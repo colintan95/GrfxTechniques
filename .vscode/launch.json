@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "GrfxTechniques.exe",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/Debug/GrfxTechniques.exe",
+            "cwd": "${workspaceFolder}/build/src/Debug"
+        }
+    ]
+}
