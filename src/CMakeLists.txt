@@ -24,5 +24,6 @@ target_compile_options(GrfxTechniques PRIVATE /W4 /WX /await)
 target_include_directories(GrfxTechniques PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(GrfxTechniques PRIVATE ${PROJECT_SOURCE_DIR}/external/d3dx12)
 
+target_link_libraries(GrfxTechniques PRIVATE DirectXMath)
 target_link_libraries(GrfxTechniques PRIVATE WIL)
 target_link_libraries(GrfxTechniques PRIVATE d3d12.lib dxgi.lib OneCore.lib)

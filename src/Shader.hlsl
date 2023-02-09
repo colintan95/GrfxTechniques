@@ -7,10 +7,17 @@ struct PSInput {
 	float4 Position : SV_POSITION;
 };
 
+struct MatrixBuffer
+{
+    float4x4 WorldViewProjMat;
+};
+
+ConstantBuffer<MatrixBuffer> s_matrixBuffer : register(b0);
+
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.Position = float4(input.Position, 1.0);
+    output.Position = mul(float4(input.Position, 1.0), s_matrixBuffer.WorldViewProjMat);
 
     return output;
 }

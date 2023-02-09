@@ -27,6 +27,8 @@ private:
 
     void CreateVertexBuffers();
 
+    void CreateConstantBuffer();
+
     void ExecuteAndWait();
 
     HWND m_hwnd;
@@ -76,8 +78,15 @@ private:
 
     winrt::com_ptr<ID3D12Resource> m_depthTexture;
 
-    winrt::com_ptr<ID3D12Resource> m_vertexBuffer;
-    size_t m_vertexBufferSize = 0;
+    winrt::com_ptr<ID3D12Resource> m_positionBuffer;
+    size_t m_positionBufferSize = 0;
+
+    winrt::com_ptr<ID3D12Resource> m_indexBuffer;
+    size_t m_indexBufferSize = 0;
+
+    int m_vertexCount = 0;
+
+    winrt::com_ptr<ID3D12Resource> m_constantBuffer;
 
     int m_currentFrame = 0;
 };

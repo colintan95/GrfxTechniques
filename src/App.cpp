@@ -4,6 +4,11 @@
 #include "gen/ShaderVS.h"
 
 #include <d3dx12.h>
+#include <DirectXMath.h>
+
+#include <vector>
+
+using namespace DirectX;
 
 using winrt::check_bool;
 using winrt::check_hresult;
@@ -25,6 +30,8 @@ App::App(HWND hwnd)
     CreateDepthTexture();
 
     CreateVertexBuffers();
+
+    CreateConstantBuffer();
 }
 
 void App::CreateDevice()
@@ -115,8 +122,15 @@ void App::CreateCommandList()
 
 void App::CreatePipelineState()
 {
+    CD3DX12_DESCRIPTOR_RANGE1 range{};
+    range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+
+    CD3DX12_ROOT_PARAMETER1 rootParam{};
+    rootParam.InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+                                       D3D12_SHADER_VISIBILITY_VERTEX);
+
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
-    rootSigDesc.Init_1_1(0, nullptr, 0, nullptr,
+    rootSigDesc.Init_1_1(1, &rootParam, 0, nullptr,
                          D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     com_ptr<ID3DBlob> signatureBlob;
@@ -210,59 +224,163 @@ void App::CreateDepthTexture()
     m_device->CreateDepthStencilView(m_depthTexture.get(), &depthViewDesc, m_dsvHandle);
 }
 
-void App::CreateVertexBuffers()
+struct CubeData
 {
-    static constexpr float posData[] =
-    {
-        -0.5f, -0.5f, 0.f,
-        0.f, 0.5f, 0.f,
-        0.5f, -0.5f, 0.f
+    std::vector<float> Positions;
+    std::vector<uint16_t> Indices;
+
+    int VertexCount = 0;
+};
+
+CubeData GetCubeData(float width)
+{
+    CubeData data{};
+
+    float h = width / 2.f;
+
+    data.Positions = {
+        -h, h, h,
+        -h, h, -h,
+        -h, -h, -h,
+        -h, -h, h,
+        h, h, -h,
+        h, h, h,
+        h, -h, h,
+        h, -h, -h,
     };
 
-    size_t bufferSize = sizeof(posData);
+    data.Indices = {
+        0, 1, 2,
+        2, 3, 0, // -x face
+        4, 5, 6,
+        6, 7, 4, // +x face
+        2, 7, 6,
+        6, 3, 2, // -y face
+        0, 5, 4,
+        4, 1, 0, // +y face
+        1, 4, 7,
+        7, 2, 1, // -z face
+        0, 3, 6,
+        6, 5, 0  // +z face
+    };
+
+    data.VertexCount = static_cast<int>(data.Indices.size());
+
+    return data;
+}
+
+void App::CreateVertexBuffers()
+{
+    CubeData cubeData = GetCubeData(0.5f);
+
+    m_positionBufferSize = cubeData.Positions.size() * sizeof(float);
+    m_indexBufferSize = cubeData.Indices.size() * sizeof(uint16_t);
+
+    m_vertexCount = cubeData.VertexCount;
 
     com_ptr<ID3D12Resource> uploadBuffer;
 
     {
+        static constexpr int uploadBufferSize = 8 * 1024 * 1024;
+
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
-        CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(256);
+        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
 
         check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                                                        &bufferDesc,
+                                                        &resourceDesc,
                                                         D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
                                                         IID_PPV_ARGS(uploadBuffer.put())));
     }
 
-    void* uploadPtr = nullptr;
-    check_hresult(uploadBuffer->Map(0, nullptr, &uploadPtr));
+    {
+        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_positionBufferSize);
 
-    memcpy(uploadPtr, reinterpret_cast<const void*>(posData), bufferSize);
-
-    uploadBuffer->Unmap(0, nullptr);
+        check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+                                                        &resourceDesc,
+                                                        D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                        IID_PPV_ARGS(m_positionBuffer.put())));
+    }
 
     {
         CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-        CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_indexBufferSize);
 
         check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                                                        &bufferDesc, D3D12_RESOURCE_STATE_COPY_DEST,
-                                                        nullptr,
-                                                        IID_PPV_ARGS(m_vertexBuffer.put())));
-
-        m_vertexBufferSize = bufferSize;
+                                                        &resourceDesc,
+                                                        D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
+                                                        IID_PPV_ARGS(m_indexBuffer.put())));
     }
+
+    std::byte* uploadPtr = nullptr;
+
+    check_hresult(uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&uploadPtr)));
+
+    memcpy(uploadPtr, cubeData.Positions.data(), m_positionBufferSize);
+    uploadPtr += m_positionBufferSize;
+
+    memcpy(uploadPtr, cubeData.Indices.data(), m_indexBufferSize);
+    uploadPtr += m_indexBufferSize;
+
+    uploadBuffer->Unmap(0, nullptr);
 
     m_cmdList->Reset(m_cmdAlloc.get(), nullptr);
 
-    m_cmdList->CopyBufferRegion(m_vertexBuffer.get(), 0, uploadBuffer.get(), 0, bufferSize);
+    m_cmdList->CopyBufferRegion(m_positionBuffer.get(), 0, uploadBuffer.get(), 0,
+                                m_positionBufferSize);
+    m_cmdList->CopyBufferRegion(m_indexBuffer.get(), 0, uploadBuffer.get(), m_positionBufferSize,
+                                m_indexBufferSize);
 
-    auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_vertexBuffer.get(), D3D12_RESOURCE_STATE_COPY_DEST,
+    auto posBufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_positionBuffer.get(), D3D12_RESOURCE_STATE_COPY_DEST,
         D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
 
-    m_cmdList->ResourceBarrier(1, &barrier);
+    auto indexBufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
+        m_indexBuffer.get(), D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+    D3D12_RESOURCE_BARRIER barriers[] = {posBufferBarrier, indexBufferBarrier};
+
+    m_cmdList->ResourceBarrier(_countof(barriers), barriers);
 
     ExecuteAndWait();
+}
+
+static size_t Align(size_t value, size_t alignment)
+{
+    return ((value - 1) / alignment + 1) * alignment;
+}
+
+struct Constants
+{
+    XMFLOAT4X4 WorldViewProjMatrix;
+};
+
+void App::CreateConstantBuffer()
+{
+    size_t bufferSize = Align(sizeof(Constants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+
+    CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+
+    check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+                                                    &resourceDesc,
+                                                    D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                                    IID_PPV_ARGS(m_constantBuffer.put())));
+
+    XMMATRIX viewMat = XMMatrixTranslation(0.f, 0.f, 2.f);
+
+    XMMATRIX projMat = XMMatrixPerspectiveFovLH(
+        XM_PI / 4.f, static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight), 0.1f,
+        1000.f);
+
+    Constants* constantsPtr = nullptr;
+
+    check_hresult(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&constantsPtr)));
+
+    XMStoreFloat4x4(&constantsPtr->WorldViewProjMatrix, XMMatrixTranspose(viewMat * projMat));
+
+    m_constantBuffer->Unmap(0, nullptr);
 }
 
 void App::Render()
@@ -274,43 +392,57 @@ void App::Render()
         auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
             m_frames[m_currentFrame].SwapChainBuffer.get(), D3D12_RESOURCE_STATE_PRESENT,
             D3D12_RESOURCE_STATE_RENDER_TARGET);
+
         m_cmdList->ResourceBarrier(1, &barrier);
     }
 
     m_cmdList->SetPipelineState(m_pipeline.get());
     m_cmdList->SetGraphicsRootSignature(m_rootSig.get());
 
+    m_cmdList->SetGraphicsRootConstantBufferView(0, m_constantBuffer->GetGPUVirtualAddress());
+
     m_cmdList->RSSetViewports(1, &m_viewport);
     m_cmdList->RSSetScissorRects(1, &m_scissorRect);
 
     D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_frames[m_currentFrame].RtvHandle;
+
     m_cmdList->OMSetRenderTargets(1, &rtvHandle, false, &m_dsvHandle);
 
     static constexpr float clearColor[] = { 0.f, 0.f, 0.f, 1.f };
+
     m_cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
     m_cmdList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, nullptr);
 
     m_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    D3D12_VERTEX_BUFFER_VIEW bufferView{};
-    bufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-    bufferView.SizeInBytes = static_cast<UINT>(m_vertexBufferSize);
-    bufferView.StrideInBytes = sizeof(float) * 3;
+    D3D12_VERTEX_BUFFER_VIEW posBufferView{};
+    posBufferView.BufferLocation = m_positionBuffer->GetGPUVirtualAddress();
+    posBufferView.SizeInBytes = static_cast<UINT>(m_positionBufferSize);
+    posBufferView.StrideInBytes = sizeof(float) * 3;
 
-    m_cmdList->IASetVertexBuffers(0, 1, &bufferView);
+    m_cmdList->IASetVertexBuffers(0, 1, &posBufferView);
 
-    m_cmdList->DrawInstanced(3, 1, 0, 0);
+    D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+    indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+    indexBufferView.SizeInBytes = static_cast<UINT>(m_indexBufferSize);
+    indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+
+    m_cmdList->IASetIndexBuffer(&indexBufferView);
+
+    m_cmdList->DrawIndexedInstanced(m_vertexCount, 1, 0, 0, 0);
 
     {
         auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
             m_frames[m_currentFrame].SwapChainBuffer.get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
             D3D12_RESOURCE_STATE_PRESENT);
+
         m_cmdList->ResourceBarrier(1, &barrier);
     }
 
     check_hresult(m_cmdList->Close());
 
     ID3D12CommandList* cmdLists[] = { m_cmdList.get() };
+
     m_cmdQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
     check_hresult(m_swapChain->Present(1, 0));
