@@ -3,6 +3,8 @@ add_executable(GrfxTechniques WIN32
     App.h
     gen/ShaderPS.h
     gen/ShaderVS.h
+    InputManager.cpp
+    InputManager.h
     main.cpp)
 
 compile_shader(

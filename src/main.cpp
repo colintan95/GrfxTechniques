@@ -1,6 +1,11 @@
 #include "App.h"
+#include "InputManager.h"
 
 #include <windows.h>
+
+#include <memory>
+
+static InputManager* g_inputManager = nullptr;
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
@@ -9,6 +14,19 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARA
         case WM_DESTROY:
             PostQuitMessage(0);
             return 0;
+    }
+
+    if (g_inputManager)
+    {
+        switch (message)
+        {
+            case WM_KEYDOWN:
+                g_inputManager->HandleKeyDown(static_cast<UINT>(wparam));
+                break;
+            case WM_KEYUP:
+                g_inputManager->HandleKeyUp(static_cast<UINT>(wparam));
+                break;
+        }
     }
 
     return DefWindowProc(hwnd, message, wparam, lparam);
@@ -30,7 +48,10 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
                              nullptr);
     ShowWindow(hwnd, cmdShow);
 
-    App app(hwnd);
+    auto inputManager = std::make_unique<InputManager>();
+    g_inputManager = inputManager.get();
+
+    auto app = std::make_unique<App>(hwnd, inputManager.get());
 
     MSG msg{};
 
@@ -42,8 +63,13 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
             DispatchMessage(&msg);
         }
 
-        app.Render();
+        app->Render();
     }
+
+    app.reset();
+
+    g_inputManager = nullptr;
+    inputManager.reset();
 
     return 0;
 }

@@ -14,8 +14,8 @@ using winrt::check_bool;
 using winrt::check_hresult;
 using winrt::com_ptr;
 
-App::App(HWND hwnd)
-    : m_hwnd(hwnd)
+App::App(HWND hwnd, InputManager* inputManager)
+    : m_hwnd(hwnd), m_inputManager(inputManager)
 {
     CreateDevice();
 
@@ -32,6 +32,9 @@ App::App(HWND hwnd)
     CreateVertexBuffers();
 
     CreateConstantBuffer();
+
+    m_leftKeyDown = m_inputManager->AddKeyHoldListener(0x41);
+    m_rightKeyDown = m_inputManager->AddKeyHoldListener(0x44);
 }
 
 void App::CreateDevice()

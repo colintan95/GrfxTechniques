@@ -1,5 +1,7 @@
 #pragma once
 
+#include "InputManager.h"
+
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <wil/resource.h>
@@ -8,7 +10,7 @@
 class App
 {
 public:
-    App(HWND hwnd);
+    App(HWND hwnd, InputManager* inputManager);
 
     void Render();
 
@@ -30,6 +32,8 @@ private:
     void CreateConstantBuffer();
 
     void ExecuteAndWait();
+
+    InputManager* m_inputManager = nullptr;
 
     HWND m_hwnd;
 
@@ -89,4 +93,7 @@ private:
     winrt::com_ptr<ID3D12Resource> m_constantBuffer;
 
     int m_currentFrame = 0;
+
+    InputHandle<bool> m_leftKeyDown;
+    InputHandle<bool> m_rightKeyDown;
 };
