@@ -10,6 +10,8 @@ class App
 public:
     App(HWND hwnd);
 
+    void Render();
+
 private:
     void CreateDevice();
 
@@ -19,15 +21,29 @@ private:
 
     void CreatePipelineState();
 
+    void CreateDescriptorHeaps();
+
+    void CreateDepthTexture();
+
+    void CreateVertexBuffers();
+
+    void ExecuteAndWait();
+
     HWND m_hwnd;
 
-    int m_numFrames = 2;
+    UINT m_windowWidth = 0;
+    UINT m_windowHeight = 0;
+
+    static constexpr int NUM_FRAMES = 2;
 
     winrt::com_ptr<IDXGIFactory6> m_factory;
     winrt::com_ptr<ID3D12Device> m_device;
 
     winrt::com_ptr<ID3D12CommandQueue> m_cmdQueue;
     winrt::com_ptr<IDXGISwapChain3> m_swapChain;
+
+    D3D12_VIEWPORT m_viewport;
+    D3D12_RECT m_scissorRect;
 
     winrt::com_ptr<ID3D12CommandAllocator> m_cmdAlloc;
     winrt::com_ptr<ID3D12GraphicsCommandList> m_cmdList;
@@ -37,6 +53,31 @@ private:
 
     wil::unique_handle m_fenceEvent;
 
+    struct Frame
+    {
+        winrt::com_ptr<ID3D12Resource> SwapChainBuffer;
+        winrt::com_ptr<ID3D12CommandAllocator> CmdAlloc;
+        D3D12_CPU_DESCRIPTOR_HANDLE RtvHandle;
+        uint64_t FenceWaitValue = 0;
+    };
+
+    Frame m_frames[NUM_FRAMES];
+
     winrt::com_ptr<ID3D12RootSignature> m_rootSig;
     winrt::com_ptr<ID3D12PipelineState> m_pipeline;
+
+    winrt::com_ptr<ID3D12DescriptorHeap> m_rtvHeap;
+    uint32_t m_rtvHandleSize = 0;
+
+    winrt::com_ptr<ID3D12DescriptorHeap> m_dsvHeap;
+    uint32_t m_dsvHandleSize = 0;
+
+    D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
+
+    winrt::com_ptr<ID3D12Resource> m_depthTexture;
+
+    winrt::com_ptr<ID3D12Resource> m_vertexBuffer;
+    size_t m_vertexBufferSize = 0;
+
+    int m_currentFrame = 0;
 };
