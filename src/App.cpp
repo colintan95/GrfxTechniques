@@ -1,5 +1,10 @@
 #include "App.h"
 
+#include "gen/ShaderPS.h"
+#include "gen/ShaderVS.h"
+
+#include <d3dx12.h>
+
 using winrt::check_bool;
 using winrt::check_hresult;
 using winrt::com_ptr;
@@ -12,6 +17,8 @@ App::App(HWND hwnd)
     CreateCmdQueueAndSwapChain();
 
     CreateCommandList();
+
+    CreatePipelineState();
 }
 
 void App::CreateDevice()
@@ -80,4 +87,46 @@ void App::CreateCommandList()
     ++m_fenceValue;
 
     m_fenceEvent.reset(CreateEvent(nullptr, false, false, nullptr));
+}
+
+void App::CreatePipelineState()
+{
+    CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
+    rootSigDesc.Init_1_1(0, nullptr, 0, nullptr,
+                         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    com_ptr<ID3DBlob> signatureBlob;
+    com_ptr<ID3DBlob> errorBlob;
+    check_hresult(D3D12SerializeVersionedRootSignature(&rootSigDesc, signatureBlob.put(),
+                                                       errorBlob.put()));
+    check_hresult(m_device->CreateRootSignature(0, signatureBlob->GetBufferPointer(),
+                                                signatureBlob->GetBufferSize(),
+                                                IID_PPV_ARGS(m_rootSig.put())));
+
+    D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+    };
+
+    D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+    inputLayoutDesc.pInputElementDescs = inputElementDescs;
+    inputLayoutDesc.NumElements = _countof(inputElementDescs);
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pipelineDesc{};
+    pipelineDesc.InputLayout = inputLayoutDesc;
+    pipelineDesc.pRootSignature = m_rootSig.get();
+    pipelineDesc.VS = CD3DX12_SHADER_BYTECODE(g_shaderVS, ARRAYSIZE(g_shaderVS));
+    pipelineDesc.PS = CD3DX12_SHADER_BYTECODE(g_shaderPS, ARRAYSIZE(g_shaderPS));;
+    pipelineDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    pipelineDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    pipelineDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+    pipelineDesc.SampleMask = UINT_MAX;
+    pipelineDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipelineDesc.NumRenderTargets = 1;
+    pipelineDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pipelineDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    pipelineDesc.SampleDesc.Count = 1;
+
+    check_hresult(m_device->CreateGraphicsPipelineState(&pipelineDesc,
+                                                        IID_PPV_ARGS(m_pipeline.put())));
 }

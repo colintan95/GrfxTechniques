@@ -17,6 +17,8 @@ private:
 
     void CreateCommandList();
 
+    void CreatePipelineState();
+
     HWND m_hwnd;
 
     int m_numFrames = 2;
@@ -34,4 +36,7 @@ private:
     uint64_t m_fenceValue = 0;
 
     wil::unique_handle m_fenceEvent;
+
+    winrt::com_ptr<ID3D12RootSignature> m_rootSig;
+    winrt::com_ptr<ID3D12PipelineState> m_pipeline;
 };
