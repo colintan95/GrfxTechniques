@@ -1,3 +1,5 @@
+#include "App.h"
+
 #include <windows.h>
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
@@ -28,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
                              nullptr);
     ShowWindow(hwnd, cmdShow);
 
-    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    App app(hwnd);
 
     MSG msg{};
 

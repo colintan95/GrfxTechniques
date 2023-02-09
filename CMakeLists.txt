@@ -4,4 +4,7 @@ project(GrfxTechniques)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(WIL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(external/wil)
+
 add_subdirectory(src)
