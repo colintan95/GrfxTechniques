@@ -27,7 +27,7 @@ public:
 
     const T& GetValue() const
     {
-        return m_value;
+        return *m_value;
     }
 
 private:
@@ -36,7 +36,7 @@ private:
     InputManager* m_manager;
     std::shared_ptr<InputId> m_id;
 
-    T m_value;
+    std::shared_ptr<T> m_value;
 };
 
 class InputManager
@@ -79,6 +79,8 @@ private:
         m_activeIds.insert(m_currentId);
 
         ++m_currentId;
+
+        handle.m_value = std::make_shared<T>();
 
         return handle;
     }
