@@ -71,6 +71,9 @@
         "unordered_set": "cpp",
         "cassert": "cpp",
         "iostream": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "numbers": "cpp",
+        "cstdarg": "cpp",
+        "random": "cpp"
     }
 }

@@ -1,6 +1,6 @@
 [submodule "external/wil"]
 	path = external/wil
 	url = https://github.com/microsoft/wil.git
-[submodule "external/DirectXMath"]
-	path = external/DirectXMath
-	url = https://github.com/microsoft/DirectXMath.git
+[submodule "external/glm"]
+	path = external/glm
+	url = https://github.com/g-truc/glm.git

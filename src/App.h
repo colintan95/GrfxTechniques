@@ -3,8 +3,8 @@
 #include "InputManager.h"
 
 #include <d3d12.h>
-#include <DirectXMath.h>
 #include <dxgi1_6.h>
+#include <glm/glm.hpp>
 #include <wil/resource.h>
 #include <winrt/base.h>
 
@@ -111,11 +111,11 @@ private:
     float m_cameraYaw = 0.f;
     float m_cameraPitch = 0.f;
 
-    DirectX::XMMATRIX m_projMat;
+    glm::mat4 m_projMat;
 
     struct Constants
     {
-        DirectX::XMFLOAT4X4 WorldViewProjMatrix;
+        glm::mat4 WorldViewProjMatrix;
     };
 
     Constants* m_constantsPtr = nullptr;

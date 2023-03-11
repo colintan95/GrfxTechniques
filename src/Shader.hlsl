@@ -17,7 +17,7 @@ ConstantBuffer<MatrixBuffer> s_matrixBuffer : register(b0);
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.Position = mul(float4(input.Position, 1.0), s_matrixBuffer.WorldViewProjMat);
+    output.Position = mul(s_matrixBuffer.WorldViewProjMat, float4(input.Position, 1.0));
 
     return output;
 }

@@ -5,9 +5,14 @@
 
 #include <d3dx12.h>
 
-#include <vector>
+#pragma warning(push)
+#pragma warning(disable:4201)
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
+#pragma warning(pop)
 
-using namespace DirectX;
+#include <numbers>
+#include <vector>
 
 using winrt::check_bool;
 using winrt::check_hresult;
@@ -365,19 +370,19 @@ void App::CreateConstantBuffer()
                                                     D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
                                                     IID_PPV_ARGS(m_constantBuffer.put())));
 
-    m_projMat = XMMatrixPerspectiveFovLH(
-        XM_PI / 4.f, static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight), 0.1f,
-        1000.f);
+    m_projMat = glm::perspective(
+        std::numbers::pi_v<float> / 4.f,
+        static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight), 0.1f, 1000.f);
 
     check_hresult(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_constantsPtr)));
 }
 
 void App::Render()
 {
-    XMMATRIX viewMat = XMMatrixTranslation(-m_cameraX, -m_cameraY, 2.f) *
-        XMMatrixRotationRollPitchYaw(-m_cameraPitch, -m_cameraYaw, 0.f);
+    glm::mat4 viewMat = glm::yawPitchRoll(-m_cameraYaw, -m_cameraPitch, 0.f) *
+        glm::translate(glm::mat4(1.f), glm::vec3(-m_cameraX, -m_cameraY, 2.f));
 
-    XMStoreFloat4x4(&m_constantsPtr->WorldViewProjMatrix, XMMatrixTranspose(viewMat * m_projMat));
+    m_constantsPtr->WorldViewProjMatrix = m_projMat * viewMat;
 
     check_hresult(m_frames[m_currentFrame].CmdAlloc->Reset());
     check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].CmdAlloc.get(), nullptr));
