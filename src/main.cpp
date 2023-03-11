@@ -3,6 +3,7 @@
 
 #include <windows.h>
 
+#include <chrono>
 #include <memory>
 
 static InputManager* g_inputManager = nullptr;
@@ -32,6 +33,12 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARA
     return DefWindowProc(hwnd, message, wparam, lparam);
 }
 
+static void CheckMMResult(MMRESULT result)
+{
+    if (result != MMSYSERR_NOERROR)
+        throw std::runtime_error("Invalid MMResult.");
+}
+
 int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
 {
     WNDCLASSEX windowClass{};
@@ -53,7 +60,20 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
 
     auto app = std::make_unique<App>(hwnd, inputManager.get());
 
+    static constexpr int timerResolutionMs = 1;
+
+    TIMECAPS timecaps{};
+    CheckMMResult(timeGetDevCaps(&timecaps, sizeof(TIMECAPS)));
+
+    if (timecaps.wPeriodMin > timerResolutionMs)
+        exit(-1);
+
+    // Sets the resolution of Sleep().
+    CheckMMResult(timeBeginPeriod(timerResolutionMs));
+
     MSG msg{};
+
+    auto prevTime = std::chrono::steady_clock::now();
 
     while (msg.message != WM_QUIT)
     {
@@ -64,6 +84,23 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
         }
 
         app->Render();
+
+        auto endTime = std::chrono::steady_clock::now();
+        double duration = std::chrono::duration<double>(endTime - prevTime).count();
+
+        static constexpr double minFrameTime = 1.0 / 60.0;
+
+        if (duration < minFrameTime)
+        {
+            int sleepMs = static_cast<int>(std::ceil((minFrameTime - duration) * 1000.0));
+
+            Sleep(sleepMs);
+
+            endTime = std::chrono::steady_clock::now();
+            duration = std::chrono::duration<double>(endTime - prevTime).count();
+        }
+
+        prevTime = endTime;
     }
 
     app.reset();
