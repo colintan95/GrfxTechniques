@@ -102,8 +102,7 @@ private:
     InputHandle<bool> m_leftKeyDown;
     InputHandle<bool> m_rightKeyDown;
 
-    float m_cameraX = 0.f;
-    float m_cameraY = 0.f;
+    glm::vec3 m_cameraPos;
 
     std::optional<int> m_prevMouseX;
     std::optional<int> m_prevMouseY;

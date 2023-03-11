@@ -39,6 +39,8 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
     m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
+
+    m_cameraPos = glm::vec3(0.f, 0.f, -2.f);
 }
 
 void App::CreateDevice()
@@ -380,7 +382,7 @@ void App::CreateConstantBuffer()
 void App::Render()
 {
     glm::mat4 viewMat = glm::yawPitchRoll(-m_cameraYaw, -m_cameraPitch, 0.f) *
-        glm::translate(glm::mat4(1.f), glm::vec3(-m_cameraX, -m_cameraY, 2.f));
+        glm::translate(glm::mat4(1.f), -m_cameraPos);
 
     m_constantsPtr->WorldViewProjMatrix = m_projMat * viewMat;
 
@@ -487,11 +489,11 @@ void App::Tick(double elapsedSec)
 
     if (m_leftKeyDown.GetValue() && !m_rightKeyDown.GetValue())
     {
-        m_cameraX -= dx;
+        m_cameraPos.x -= dx;
     }
     else if (m_rightKeyDown.GetValue())
     {
-        m_cameraX += dx;
+        m_cameraPos.x += dx;
     }
 
     static constexpr float lookSpeed = 0.0005f;
