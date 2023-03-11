@@ -15,6 +15,8 @@ public:
 
     void Render();
 
+    void Tick(double elapsedSec);
+
 private:
     void CreateDevice();
 

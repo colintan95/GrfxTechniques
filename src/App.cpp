@@ -32,8 +32,8 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     CreateConstantBuffer();
 
-    m_leftKeyDown = m_inputManager->AddKeyHoldListener(0x41);
-    m_rightKeyDown = m_inputManager->AddKeyHoldListener(0x44);
+    m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
+    m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
 }
 
 void App::CreateDevice()
@@ -471,4 +471,20 @@ void App::ExecuteAndWait()
     check_hresult(m_fence->SetEventOnCompletion(waitValue, m_fenceEvent.get()));
 
     WaitForSingleObjectEx(m_fenceEvent.get(), INFINITE, false);
+}
+
+void App::Tick(double elapsedSec)
+{
+    static constexpr float moveSpeed = 1.0f;
+
+    float dx = static_cast<float>(elapsedSec) * moveSpeed;
+
+    if (m_leftKeyDown.GetValue() && !m_rightKeyDown.GetValue())
+    {
+        m_cameraX -= dx;
+    }
+    else if (m_rightKeyDown.GetValue())
+    {
+        m_cameraX += dx;
+    }
 }

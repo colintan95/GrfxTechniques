@@ -6,7 +6,7 @@ InputHandle<bool> InputManager::AddKeyHoldListener(UINT keyCode)
 
     KeyHoldEntry entry{};
     entry.Id = *handle.m_id;
-    entry.Value = handle.m_value.get();
+    entry.Value = handle.m_value;
 
     m_keyHoldEntries[keyCode].push_back(entry);
 

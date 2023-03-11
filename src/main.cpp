@@ -74,6 +74,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
     MSG msg{};
 
     auto prevTime = std::chrono::steady_clock::now();
+    double prevDuration = 0.0;
 
     while (msg.message != WM_QUIT)
     {
@@ -82,6 +83,8 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+
+        app->Tick(prevDuration);
 
         app->Render();
 
@@ -101,6 +104,7 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
         }
 
         prevTime = endTime;
+        prevDuration = duration;
     }
 
     app.reset();

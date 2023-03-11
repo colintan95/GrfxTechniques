@@ -90,7 +90,7 @@ private:
     struct KeyHoldEntry
     {
         InputId Id;
-        bool* Value = nullptr;
+        std::shared_ptr<bool> Value;
     };
 
     std::unordered_map<UINT, std::vector<KeyHoldEntry>> m_keyHoldEntries;
