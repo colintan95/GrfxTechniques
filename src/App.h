@@ -8,6 +8,8 @@
 #include <wil/resource.h>
 #include <winrt/base.h>
 
+#include <optional>
+
 class App
 {
 public:
@@ -102,6 +104,12 @@ private:
 
     float m_cameraX = 0.f;
     float m_cameraY = 0.f;
+
+    std::optional<int> m_prevMouseX;
+    std::optional<int> m_prevMouseY;
+
+    float m_cameraYaw = 0.f;
+    float m_cameraPitch = 0.f;
 
     DirectX::XMMATRIX m_projMat;
 

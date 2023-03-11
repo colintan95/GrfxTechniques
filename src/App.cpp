@@ -374,7 +374,8 @@ void App::CreateConstantBuffer()
 
 void App::Render()
 {
-    XMMATRIX viewMat = XMMatrixTranslation(-m_cameraX, -m_cameraY, 2.f);
+    XMMATRIX viewMat = XMMatrixTranslation(-m_cameraX, -m_cameraY, 2.f) *
+        XMMatrixRotationRollPitchYaw(-m_cameraPitch, -m_cameraYaw, 0.f);
 
     XMStoreFloat4x4(&m_constantsPtr->WorldViewProjMatrix, XMMatrixTranspose(viewMat * m_projMat));
 
@@ -487,4 +488,22 @@ void App::Tick(double elapsedSec)
     {
         m_cameraX += dx;
     }
+
+    static constexpr float lookSpeed = 0.0005f;
+
+    POINT currentMousePos{};
+    check_bool(GetCursorPos(&currentMousePos));
+
+    if (m_prevMouseX)
+    {
+        m_cameraYaw += static_cast<float>(currentMousePos.x - *m_prevMouseX) * lookSpeed;
+    }
+
+    if (m_prevMouseY)
+    {
+        m_cameraPitch += static_cast<float>(currentMousePos.y - *m_prevMouseY) * lookSpeed;
+    }
+
+    m_prevMouseX = currentMousePos.x;
+    m_prevMouseY = currentMousePos.y;
 }
