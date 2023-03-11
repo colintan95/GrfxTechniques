@@ -3,6 +3,7 @@
 #include "InputManager.h"
 
 #include <d3d12.h>
+#include <DirectXMath.h>
 #include <dxgi1_6.h>
 #include <wil/resource.h>
 #include <winrt/base.h>
@@ -96,4 +97,16 @@ private:
 
     InputHandle<bool> m_leftKeyDown;
     InputHandle<bool> m_rightKeyDown;
+
+    float m_cameraX = 0.f;
+    float m_cameraY = 0.f;
+
+    DirectX::XMMATRIX m_projMat;
+
+    struct Constants
+    {
+        DirectX::XMFLOAT4X4 WorldViewProjMatrix;
+    };
+
+    Constants* m_constantsPtr = nullptr;
 };

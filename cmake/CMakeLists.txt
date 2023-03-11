@@ -25,7 +25,7 @@ function(compile_shader)
 
     add_custom_command(
         OUTPUT ${SHADER_OUTPUT}
-        COMMAND ${dxc_path} ${SHADER_SOURCE} -Zi -Od -Qembed_debug -Zpr -T ${profile} -Fh
+        COMMAND ${dxc_path} ${SHADER_SOURCE} -Zi -Od -Qembed_debug -T ${profile} -Fh
                 ${SHADER_OUTPUT} -Vn ${SHADER_VAR_NAME} -E ${entry_point} ${extra_args}
         MAIN_DEPENDENCY ${SHADER_SOURCE})
 endfunction()

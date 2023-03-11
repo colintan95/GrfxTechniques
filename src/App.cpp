@@ -4,7 +4,6 @@
 #include "gen/ShaderVS.h"
 
 #include <d3dx12.h>
-#include <DirectXMath.h>
 
 #include <vector>
 
@@ -354,11 +353,6 @@ static size_t Align(size_t value, size_t alignment)
     return ((value - 1) / alignment + 1) * alignment;
 }
 
-struct Constants
-{
-    XMFLOAT4X4 WorldViewProjMatrix;
-};
-
 void App::CreateConstantBuffer()
 {
     size_t bufferSize = Align(sizeof(Constants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
@@ -371,23 +365,19 @@ void App::CreateConstantBuffer()
                                                     D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
                                                     IID_PPV_ARGS(m_constantBuffer.put())));
 
-    XMMATRIX viewMat = XMMatrixTranslation(0.f, 0.f, 2.f);
-
-    XMMATRIX projMat = XMMatrixPerspectiveFovLH(
+    m_projMat = XMMatrixPerspectiveFovLH(
         XM_PI / 4.f, static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight), 0.1f,
         1000.f);
 
-    Constants* constantsPtr = nullptr;
-
-    check_hresult(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&constantsPtr)));
-
-    XMStoreFloat4x4(&constantsPtr->WorldViewProjMatrix, XMMatrixTranspose(viewMat * projMat));
-
-    m_constantBuffer->Unmap(0, nullptr);
+    check_hresult(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_constantsPtr)));
 }
 
 void App::Render()
 {
+    XMMATRIX viewMat = XMMatrixTranslation(-m_cameraX, -m_cameraY, 2.f);
+
+    XMStoreFloat4x4(&m_constantsPtr->WorldViewProjMatrix, XMMatrixTranspose(viewMat * m_projMat));
+
     check_hresult(m_frames[m_currentFrame].CmdAlloc->Reset());
     check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].CmdAlloc.get(), nullptr));
 
