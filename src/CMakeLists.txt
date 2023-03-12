@@ -8,7 +8,19 @@ add_executable(GrfxTechniques WIN32
     InputManager.cpp
     InputManager.h
     main.cpp
-    Model.h)
+    Model.h
+    ${IMGUI_DIR}/backends/imgui_impl_dx12.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_dx12.h
+    ${IMGUI_DIR}/backends/imgui_impl_win32.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_win32.h
+    ${IMGUI_DIR}/imconfig.h
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui.h
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_internal.h
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp)
 
 compile_shader(
     OUTPUT gen/ShaderPS.h
@@ -29,7 +41,9 @@ target_compile_definitions(GrfxTechniques PRIVATE UNICODE NOMINMAX)
 target_compile_options(GrfxTechniques PRIVATE /W4 /WX /await)
 
 target_include_directories(GrfxTechniques PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
 target_include_directories(GrfxTechniques PRIVATE ${PROJECT_SOURCE_DIR}/external/d3dx12)
+target_include_directories(GrfxTechniques PRIVATE ${IMGUI_DIR} ${IMGUI_DIR}/backends)
 
 target_link_libraries(GrfxTechniques PRIVATE nlohmann_json)
 target_link_libraries(GrfxTechniques PRIVATE WIL)

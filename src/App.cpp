@@ -4,6 +4,9 @@
 #include "gen/ShaderVS.h"
 
 #include <d3dx12.h>
+#include <imgui.h>
+#include <imgui_impl_dx12.h>
+#include <imgui_impl_win32.h>
 
 #pragma warning(push)
 #pragma warning(disable:4201)
@@ -45,6 +48,22 @@ App::App(HWND hwnd, InputManager* inputManager)
     m_cameraPos = glm::vec3(0.f, 0.f, -4.f);
 
     m_resourceManager->LoadGltfModel("assets/box/Box.gltf", &m_model);
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+
+    ImGui_ImplWin32_Init(m_hwnd);
+    ImGui_ImplDX12_Init(m_device.get(), NUM_FRAMES, DXGI_FORMAT_R8G8B8A8_UNORM, m_guiSrvHeap.get(),
+                        m_guiSrvHeap->GetCPUDescriptorHandleForHeapStart(),
+                        m_guiSrvHeap->GetGPUDescriptorHandleForHeapStart());
+}
+
+App::~App()
+{
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+
+    ImGui::DestroyContext();
 }
 
 void App::CreateDevice()
@@ -118,8 +137,17 @@ void App::CreateCommandList()
 
     for (int i = 0; i < _countof(m_frames); ++i)
     {
-        check_hresult(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                                       IID_PPV_ARGS(m_frames[i].CmdAlloc.put())));
+        check_hresult(m_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_frames[i].BeginCmdAlloc.put())));
+
+        check_hresult(m_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_frames[i].DrawCmdAlloc.put())));
+
+        check_hresult(m_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_frames[i].GuiCmdAlloc.put())));
+
+        check_hresult(m_device->CreateCommandAllocator(
+            D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(m_frames[i].PresentCmdAlloc.put())));
     }
 
     check_hresult(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_cmdAlloc.get(),
@@ -213,6 +241,15 @@ void App::CreateDescriptorHeaps()
             D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
         m_dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+    }
+
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+        heapDesc.NumDescriptors = 1;
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+        check_hresult(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_guiSrvHeap.put())));
     }
 }
 
@@ -308,13 +345,19 @@ void App::CreateConstantBuffer()
 
 void App::Render()
 {
-    glm::mat4 viewMat = glm::yawPitchRoll(-m_cameraYaw, -m_cameraPitch, 0.f) *
-        glm::translate(glm::mat4(1.f), -m_cameraPos);
+    BeginFrame();
 
-    m_constantsPtr->WorldViewProjMatrix = m_projMat * viewMat;
+    DrawModels();
 
-    check_hresult(m_frames[m_currentFrame].CmdAlloc->Reset());
-    check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].CmdAlloc.get(), nullptr));
+    RenderGui();
+
+    PresentFrame();
+}
+
+void App::BeginFrame()
+{
+    check_hresult(m_frames[m_currentFrame].BeginCmdAlloc->Reset());
+    check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].BeginCmdAlloc.get(), nullptr));
 
     {
         auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -324,6 +367,27 @@ void App::Render()
         m_cmdList->ResourceBarrier(1, &barrier);
     }
 
+    static constexpr float clearColor[] = { 0.f, 0.f, 0.f, 1.f };
+
+    m_cmdList->ClearRenderTargetView(m_frames[m_currentFrame].RtvHandle, clearColor, 0, nullptr);
+    m_cmdList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, nullptr);
+
+    check_hresult(m_cmdList->Close());
+
+    ID3D12CommandList* cmdLists[] = { m_cmdList.get() };
+    m_cmdQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+}
+
+void App::DrawModels()
+{
+    glm::mat4 viewMat = glm::yawPitchRoll(-m_cameraYaw, -m_cameraPitch, 0.f) *
+        glm::translate(glm::mat4(1.f), -m_cameraPos);
+
+    m_constantsPtr->WorldViewProjMatrix = m_projMat * viewMat;
+
+    check_hresult(m_frames[m_currentFrame].DrawCmdAlloc->Reset());
+    check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].DrawCmdAlloc.get(), nullptr));
+
     m_cmdList->SetPipelineState(m_pipeline.get());
     m_cmdList->SetGraphicsRootSignature(m_rootSig.get());
 
@@ -332,28 +396,62 @@ void App::Render()
     m_cmdList->RSSetViewports(1, &m_viewport);
     m_cmdList->RSSetScissorRects(1, &m_scissorRect);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_frames[m_currentFrame].RtvHandle;
-
-    m_cmdList->OMSetRenderTargets(1, &rtvHandle, false, &m_dsvHandle);
-
-    static constexpr float clearColor[] = { 0.f, 0.f, 0.f, 1.f };
-
-    m_cmdList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-    m_cmdList->ClearDepthStencilView(m_dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, nullptr);
-
-    m_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    m_cmdList->OMSetRenderTargets(1, &m_frames[m_currentFrame].RtvHandle, false, &m_dsvHandle);
 
     for (const auto& mesh : m_model.Meshes)
     {
         for (const auto& prim : mesh.Primitives)
         {
-            m_cmdList->IASetVertexBuffers(0, 1, &prim.Positions);
+            m_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+            m_cmdList->IASetVertexBuffers(0, 1, &prim.Positions);
             m_cmdList->IASetIndexBuffer(&prim.Indices);
 
             m_cmdList->DrawIndexedInstanced(prim.VertexCount, 1, 0, 0, 0);
         }
     }
+
+    check_hresult(m_cmdList->Close());
+
+    ID3D12CommandList* cmdLists[] = { m_cmdList.get() };
+    m_cmdQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+}
+
+void App::RenderGui()
+{
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+
+    static bool showDemoWindow = true;
+
+    if (showDemoWindow)
+    {
+        ImGui::ShowDemoWindow(&showDemoWindow);
+    }
+
+    ImGui::Render();
+
+    check_hresult(m_frames[m_currentFrame].GuiCmdAlloc->Reset());
+    check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].GuiCmdAlloc.get(), nullptr));
+
+    m_cmdList->OMSetRenderTargets(1, &m_frames[m_currentFrame].RtvHandle, false, nullptr);
+
+    ID3D12DescriptorHeap* heaps[] = { m_guiSrvHeap.get() };
+    m_cmdList->SetDescriptorHeaps(1, heaps);
+
+    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_cmdList.get());
+
+    check_hresult(m_cmdList->Close());
+
+    ID3D12CommandList* cmdLists[] = { m_cmdList.get() };
+    m_cmdQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+}
+
+void App::PresentFrame()
+{
+    check_hresult(m_frames[m_currentFrame].PresentCmdAlloc->Reset());
+    check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].PresentCmdAlloc.get(), nullptr));
 
     {
         auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -366,7 +464,6 @@ void App::Render()
     check_hresult(m_cmdList->Close());
 
     ID3D12CommandList* cmdLists[] = { m_cmdList.get() };
-
     m_cmdQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
     check_hresult(m_swapChain->Present(1, 0));

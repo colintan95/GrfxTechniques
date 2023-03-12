@@ -1,6 +1,7 @@
 #include "App.h"
 #include "InputManager.h"
 
+#include <imgui_impl_win32.h>
 #include <windows.h>
 
 #include <chrono>
@@ -8,8 +9,13 @@
 
 static InputManager* g_inputManager = nullptr;
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
+
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, message, wparam, lparam))
+        return 1;
+
     switch (message)
     {
         case WM_DESTROY:

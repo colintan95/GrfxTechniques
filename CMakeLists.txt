@@ -4,6 +4,8 @@ project(GrfxTechniques)
 
 set(CMAKE_CXX_STANDARD 20)
 
+set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/external/imgui)
+
 set(WIL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/wil)
 

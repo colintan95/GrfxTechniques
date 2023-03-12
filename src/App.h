@@ -15,6 +15,7 @@ class App
 {
 public:
     App(HWND hwnd, InputManager* inputManager);
+    ~App();
 
     void Render();
 
@@ -34,6 +35,14 @@ private:
     void CreateDepthTexture();
 
     void CreateConstantBuffer();
+
+    void BeginFrame();
+
+    void DrawModels();
+
+    void RenderGui();
+
+    void PresentFrame();
 
     void ExecuteAndWait();
 
@@ -68,8 +77,14 @@ private:
     struct Frame
     {
         winrt::com_ptr<ID3D12Resource> SwapChainBuffer;
-        winrt::com_ptr<ID3D12CommandAllocator> CmdAlloc;
+
+        winrt::com_ptr<ID3D12CommandAllocator> BeginCmdAlloc;
+        winrt::com_ptr<ID3D12CommandAllocator> DrawCmdAlloc;
+        winrt::com_ptr<ID3D12CommandAllocator> GuiCmdAlloc;
+        winrt::com_ptr<ID3D12CommandAllocator> PresentCmdAlloc;
+
         D3D12_CPU_DESCRIPTOR_HANDLE RtvHandle;
+
         uint64_t FenceWaitValue = 0;
     };
 
@@ -85,6 +100,8 @@ private:
     uint32_t m_dsvHandleSize = 0;
 
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
+
+    winrt::com_ptr<ID3D12DescriptorHeap> m_guiSrvHeap;
 
     winrt::com_ptr<ID3D12Resource> m_depthTexture;
 
