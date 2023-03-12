@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GpuResourceManager.h"
 #include "InputManager.h"
 
 #include <d3d12.h>
@@ -49,6 +50,8 @@ private:
 
     winrt::com_ptr<IDXGIFactory6> m_factory;
     winrt::com_ptr<ID3D12Device> m_device;
+
+    std::unique_ptr<GpuResourceManager> m_resourceManager;
 
     winrt::com_ptr<ID3D12CommandQueue> m_cmdQueue;
     winrt::com_ptr<IDXGISwapChain3> m_swapChain;
@@ -120,4 +123,6 @@ private:
     };
 
     Constants* m_constantsPtr = nullptr;
+
+    Model m_model;
 };

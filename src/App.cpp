@@ -23,6 +23,8 @@ App::App(HWND hwnd, InputManager* inputManager)
 {
     CreateDevice();
 
+    m_resourceManager = std::make_unique<GpuResourceManager>(m_device.get());
+
     CreateCmdQueueAndSwapChain();
 
     CreateCommandList();
@@ -43,6 +45,8 @@ App::App(HWND hwnd, InputManager* inputManager)
     m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
 
     m_cameraPos = glm::vec3(0.f, 0.f, -2.f);
+
+    m_resourceManager->LoadGltfModel("assets/box/Box.gltf", m_model);
 }
 
 void App::CreateDevice()

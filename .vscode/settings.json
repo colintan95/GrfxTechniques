@@ -74,6 +74,17 @@
         "set": "cpp",
         "numbers": "cpp",
         "cstdarg": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "filesystem": "cpp",
+        "csignal": "cpp",
+        "deque": "cpp",
+        "fstream": "cpp",
+        "mutex": "cpp",
+        "numeric": "cpp",
+        "ranges": "cpp",
+        "regex": "cpp",
+        "span": "cpp",
+        "valarray": "cpp",
+        "variant": "cpp"
     }
 }

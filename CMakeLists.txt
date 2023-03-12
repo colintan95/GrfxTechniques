@@ -8,6 +8,7 @@ set(WIL_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/wil)
 
 add_subdirectory(external/glm)
+add_subdirectory(external/json)
 
 add_subdirectory(cmake)
 add_subdirectory(src)
