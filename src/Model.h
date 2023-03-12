@@ -7,6 +7,8 @@
 struct Primitive
 {
     D3D12_VERTEX_BUFFER_VIEW Positions;
+    D3D12_VERTEX_BUFFER_VIEW Normals;
+
     D3D12_INDEX_BUFFER_VIEW Indices;
 
     int VertexCount;

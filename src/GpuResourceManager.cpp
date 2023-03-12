@@ -138,11 +138,12 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
             Primitive prim{};
 
             int posAccessorIdx = primJson["attributes"]["POSITION"];
-
             CreateVertexBufferView(posAccessorIdx, gltfJson, buffers, &prim.Positions);
 
-            int indicesAccessorIdx = primJson["indices"];
+            int normalsAccessorIdx = primJson["attributes"]["NORMAL"];
+            CreateVertexBufferView(normalsAccessorIdx, gltfJson, buffers, &prim.Normals);
 
+            int indicesAccessorIdx = primJson["indices"];
             CreateIndexBufferView(indicesAccessorIdx, gltfJson, buffers, &prim.Indices);
 
             prim.VertexCount = gltfJson["accessors"][indicesAccessorIdx]["count"];

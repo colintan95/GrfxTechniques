@@ -127,6 +127,7 @@ private:
     struct Constants
     {
         glm::mat4 WorldViewProjMatrix;
+        glm::vec4 LightPos;
     };
 
     Constants* m_constantsPtr = nullptr;

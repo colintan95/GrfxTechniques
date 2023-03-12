@@ -168,7 +168,7 @@ void App::CreatePipelineState()
 
     CD3DX12_ROOT_PARAMETER1 rootParam{};
     rootParam.InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
-                                       D3D12_SHADER_VISIBILITY_VERTEX);
+                                       D3D12_SHADER_VISIBILITY_ALL);
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
     rootSigDesc.Init_1_1(1, &rootParam, 0, nullptr,
@@ -184,7 +184,9 @@ void App::CreatePipelineState()
 
     D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+         0}
     };
 
     D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
@@ -336,11 +338,13 @@ void App::CreateConstantBuffer()
                                                     D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
                                                     IID_PPV_ARGS(m_constantBuffer.put())));
 
+    check_hresult(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_constantsPtr)));
+
     m_projMat = glm::perspective(
         std::numbers::pi_v<float> / 4.f,
         static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight), 0.1f, 1000.f);
 
-    check_hresult(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_constantsPtr)));
+    m_constantsPtr->LightPos = glm::vec4(0.f, 1.f, -1.5f, 1.f);
 }
 
 void App::Render()
@@ -405,6 +409,8 @@ void App::DrawModels()
             m_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             m_cmdList->IASetVertexBuffers(0, 1, &prim.Positions);
+            m_cmdList->IASetVertexBuffers(1, 1, &prim.Normals);
+
             m_cmdList->IASetIndexBuffer(&prim.Indices);
 
             m_cmdList->DrawIndexedInstanced(prim.VertexCount, 1, 0, 0, 0);
@@ -423,11 +429,25 @@ void App::RenderGui()
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    static bool showDemoWindow = true;
+    // static bool showDemoWindow = true;
 
-    if (showDemoWindow)
+    // if (showDemoWindow)
+    // {
+    //     ImGui::ShowDemoWindow(&showDemoWindow);
+    // }
+
+    static bool showWindow = true;
+
+    static int mode = 0;
+
+    if (showWindow)
     {
-        ImGui::ShowDemoWindow(&showDemoWindow);
+        ImGui::Begin("Window", &showWindow);
+
+        ImGui::RadioButton("Static", &mode, 0);
+        ImGui::RadioButton("FPS", &mode, 1);
+
+        ImGui::End();
     }
 
     ImGui::Render();
