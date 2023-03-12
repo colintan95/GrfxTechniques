@@ -37,6 +37,8 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     CreateConstantBuffer();
 
+    m_upKeyDown = m_inputManager->AddKeyHoldListener('W');
+    m_downKeyDown = m_inputManager->AddKeyHoldListener('S');
     m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
     m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
 
@@ -483,17 +485,65 @@ void App::ExecuteAndWait()
 
 void App::Tick(double elapsedSec)
 {
+    glm::mat4 rotateMat = glm::yawPitchRoll(m_cameraYaw, m_cameraPitch, 0.f);
+
+    glm::vec3 forwardVec = glm::vec3(rotateMat * glm::vec4(0.f, 0.f, 1.f, 0.f));
+    glm::vec3 rightVec = glm::vec3(rotateMat * glm::vec4(1.f, 0.f, 0.f, 1.f));
+
     static constexpr float moveSpeed = 1.0f;
 
-    float dx = static_cast<float>(elapsedSec) * moveSpeed;
+    float moveDist = static_cast<float>(elapsedSec) * moveSpeed;
+    float moveDiagDist = static_cast<float>(elapsedSec) * moveSpeed / std::sqrt(2.f);
 
-    if (m_leftKeyDown.GetValue() && !m_rightKeyDown.GetValue())
+    bool upKeyDown = m_upKeyDown.GetValue();
+    bool downKeyDown = m_downKeyDown.GetValue();
+    bool leftKeyDown = m_leftKeyDown.GetValue();
+    bool rightKeyDown = m_rightKeyDown.GetValue();
+
+    if (upKeyDown && !downKeyDown)
     {
-        m_cameraPos.x -= dx;
+        if (leftKeyDown && !rightKeyDown)
+        {
+            m_cameraPos += moveDiagDist * forwardVec;
+            m_cameraPos -= moveDiagDist * rightVec;
+        }
+        else if (rightKeyDown)
+        {
+            m_cameraPos += moveDiagDist * forwardVec;
+            m_cameraPos += moveDiagDist * rightVec;
+        }
+        else
+        {
+            m_cameraPos += moveDist * forwardVec;
+        }
     }
-    else if (m_rightKeyDown.GetValue())
+    else if (downKeyDown)
     {
-        m_cameraPos.x += dx;
+        if (leftKeyDown && !rightKeyDown)
+        {
+            m_cameraPos -= moveDiagDist * forwardVec;
+            m_cameraPos -= moveDiagDist * rightVec;
+        }
+        else if (rightKeyDown)
+        {
+            m_cameraPos -= moveDiagDist * forwardVec;
+            m_cameraPos += moveDiagDist * rightVec;
+        }
+        else
+        {
+            m_cameraPos -= moveDist * forwardVec;
+        }
+    }
+    else
+    {
+        if (leftKeyDown && !rightKeyDown)
+        {
+            m_cameraPos -= moveDist * rightVec;
+        }
+        else if (rightKeyDown)
+        {
+            m_cameraPos += moveDist * rightVec;
+        }
     }
 
     static constexpr float lookSpeed = 0.0005f;

@@ -99,6 +99,8 @@ private:
 
     int m_currentFrame = 0;
 
+    InputHandle<bool> m_upKeyDown;
+    InputHandle<bool> m_downKeyDown;
     InputHandle<bool> m_leftKeyDown;
     InputHandle<bool> m_rightKeyDown;
 
