@@ -111,7 +111,7 @@ static void CreateIndexBufferView(int accessorIdx, const json& gltfJson,
     view->Format = DXGI_FORMAT_R16_UINT;
 }
 
-void GpuResourceManager::LoadGltfModel(fs::path path, Model&)
+void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
 {
     std::ifstream strm(path);
     if (!strm.is_open())
@@ -136,13 +136,19 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model&)
             Primitive prim{};
 
             int posAccessorIdx = primJson["attributes"]["POSITION"];
+
             CreateVertexBufferView(posAccessorIdx, gltfJson, buffers, &prim.Positions);
 
             int indicesAccessorIdx = primJson["indices"];
+
             CreateIndexBufferView(indicesAccessorIdx, gltfJson, buffers, &prim.Indices);
 
-            mesh.Primitives.push_back(prim);
+            prim.VertexCount = gltfJson["accessors"][indicesAccessorIdx]["count"];
+
+            mesh.Primitives.push_back(std::move(prim));
         }
+
+        model->Meshes.push_back(std::move(mesh));
     }
 }
 

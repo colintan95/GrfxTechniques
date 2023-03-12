@@ -13,7 +13,7 @@ class GpuResourceManager
 public:
     GpuResourceManager(ID3D12Device* device);
 
-    void LoadGltfModel(std::filesystem::path path, Model& model);
+    void LoadGltfModel(std::filesystem::path path, Model* model);
 
 private:
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::filesystem::path path);

@@ -33,8 +33,6 @@ private:
 
     void CreateDepthTexture();
 
-    void CreateVertexBuffers();
-
     void CreateConstantBuffer();
 
     void ExecuteAndWait();
@@ -89,14 +87,6 @@ private:
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
 
     winrt::com_ptr<ID3D12Resource> m_depthTexture;
-
-    winrt::com_ptr<ID3D12Resource> m_positionBuffer;
-    size_t m_positionBufferSize = 0;
-
-    winrt::com_ptr<ID3D12Resource> m_indexBuffer;
-    size_t m_indexBufferSize = 0;
-
-    int m_vertexCount = 0;
 
     winrt::com_ptr<ID3D12Resource> m_constantBuffer;
 

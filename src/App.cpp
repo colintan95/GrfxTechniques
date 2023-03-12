@@ -35,8 +35,6 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     CreateDepthTexture();
 
-    CreateVertexBuffers();
-
     CreateConstantBuffer();
 
     m_upKeyDown = m_inputManager->AddKeyHoldListener('W');
@@ -44,9 +42,9 @@ App::App(HWND hwnd, InputManager* inputManager)
     m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
     m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
 
-    m_cameraPos = glm::vec3(0.f, 0.f, -2.f);
+    m_cameraPos = glm::vec3(0.f, 0.f, -4.f);
 
-    m_resourceManager->LoadGltfModel("assets/box/Box.gltf", m_model);
+    m_resourceManager->LoadGltfModel("assets/box/Box.gltf", &m_model);
 }
 
 void App::CreateDevice()
@@ -239,127 +237,50 @@ void App::CreateDepthTexture()
     m_device->CreateDepthStencilView(m_depthTexture.get(), &depthViewDesc, m_dsvHandle);
 }
 
-struct CubeData
-{
-    std::vector<float> Positions;
-    std::vector<uint16_t> Indices;
+// struct CubeData
+// {
+//     std::vector<float> Positions;
+//     std::vector<uint16_t> Indices;
 
-    int VertexCount = 0;
-};
+//     int VertexCount = 0;
+// };
 
-CubeData GetCubeData(float width)
-{
-    CubeData data{};
+// CubeData GetCubeData(float width)
+// {
+//     CubeData data{};
 
-    float h = width / 2.f;
+//     float h = width / 2.f;
 
-    data.Positions = {
-        -h, h, h,
-        -h, h, -h,
-        -h, -h, -h,
-        -h, -h, h,
-        h, h, -h,
-        h, h, h,
-        h, -h, h,
-        h, -h, -h,
-    };
+//     data.Positions = {
+//         -h, h, h,
+//         -h, h, -h,
+//         -h, -h, -h,
+//         -h, -h, h,
+//         h, h, -h,
+//         h, h, h,
+//         h, -h, h,
+//         h, -h, -h,
+//     };
 
-    data.Indices = {
-        0, 1, 2,
-        2, 3, 0, // -x face
-        4, 5, 6,
-        6, 7, 4, // +x face
-        2, 7, 6,
-        6, 3, 2, // -y face
-        0, 5, 4,
-        4, 1, 0, // +y face
-        1, 4, 7,
-        7, 2, 1, // -z face
-        0, 3, 6,
-        6, 5, 0  // +z face
-    };
+//     data.Indices = {
+//         0, 1, 2,
+//         2, 3, 0, // -x face
+//         4, 5, 6,
+//         6, 7, 4, // +x face
+//         2, 7, 6,
+//         6, 3, 2, // -y face
+//         0, 5, 4,
+//         4, 1, 0, // +y face
+//         1, 4, 7,
+//         7, 2, 1, // -z face
+//         0, 3, 6,
+//         6, 5, 0  // +z face
+//     };
 
-    data.VertexCount = static_cast<int>(data.Indices.size());
+//     data.VertexCount = static_cast<int>(data.Indices.size());
 
-    return data;
-}
-
-void App::CreateVertexBuffers()
-{
-    CubeData cubeData = GetCubeData(0.5f);
-
-    m_positionBufferSize = cubeData.Positions.size() * sizeof(float);
-    m_indexBufferSize = cubeData.Indices.size() * sizeof(uint16_t);
-
-    m_vertexCount = cubeData.VertexCount;
-
-    com_ptr<ID3D12Resource> uploadBuffer;
-
-    {
-        static constexpr int uploadBufferSize = 8 * 1024 * 1024;
-
-        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
-
-        check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                                                        &resourceDesc,
-                                                        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                                        IID_PPV_ARGS(uploadBuffer.put())));
-    }
-
-    {
-        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_positionBufferSize);
-
-        check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                                                        &resourceDesc,
-                                                        D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
-                                                        IID_PPV_ARGS(m_positionBuffer.put())));
-    }
-
-    {
-        CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-        CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(m_indexBufferSize);
-
-        check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                                                        &resourceDesc,
-                                                        D3D12_RESOURCE_STATE_COPY_DEST, nullptr,
-                                                        IID_PPV_ARGS(m_indexBuffer.put())));
-    }
-
-    std::byte* uploadPtr = nullptr;
-
-    check_hresult(uploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&uploadPtr)));
-
-    memcpy(uploadPtr, cubeData.Positions.data(), m_positionBufferSize);
-    uploadPtr += m_positionBufferSize;
-
-    memcpy(uploadPtr, cubeData.Indices.data(), m_indexBufferSize);
-    uploadPtr += m_indexBufferSize;
-
-    uploadBuffer->Unmap(0, nullptr);
-
-    m_cmdList->Reset(m_cmdAlloc.get(), nullptr);
-
-    m_cmdList->CopyBufferRegion(m_positionBuffer.get(), 0, uploadBuffer.get(), 0,
-                                m_positionBufferSize);
-    m_cmdList->CopyBufferRegion(m_indexBuffer.get(), 0, uploadBuffer.get(), m_positionBufferSize,
-                                m_indexBufferSize);
-
-    auto posBufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_positionBuffer.get(), D3D12_RESOURCE_STATE_COPY_DEST,
-        D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-
-    auto indexBufferBarrier = CD3DX12_RESOURCE_BARRIER::Transition(
-        m_indexBuffer.get(), D3D12_RESOURCE_STATE_COPY_DEST,
-        D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
-
-    D3D12_RESOURCE_BARRIER barriers[] = {posBufferBarrier, indexBufferBarrier};
-
-    m_cmdList->ResourceBarrier(_countof(barriers), barriers);
-
-    ExecuteAndWait();
-}
+//     return data;
+// }
 
 static size_t Align(size_t value, size_t alignment)
 {
@@ -422,21 +343,17 @@ void App::Render()
 
     m_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    D3D12_VERTEX_BUFFER_VIEW posBufferView{};
-    posBufferView.BufferLocation = m_positionBuffer->GetGPUVirtualAddress();
-    posBufferView.SizeInBytes = static_cast<UINT>(m_positionBufferSize);
-    posBufferView.StrideInBytes = sizeof(float) * 3;
+    for (const auto& mesh : m_model.Meshes)
+    {
+        for (const auto& prim : mesh.Primitives)
+        {
+            m_cmdList->IASetVertexBuffers(0, 1, &prim.Positions);
 
-    m_cmdList->IASetVertexBuffers(0, 1, &posBufferView);
+            m_cmdList->IASetIndexBuffer(&prim.Indices);
 
-    D3D12_INDEX_BUFFER_VIEW indexBufferView{};
-    indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-    indexBufferView.SizeInBytes = static_cast<UINT>(m_indexBufferSize);
-    indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-
-    m_cmdList->IASetIndexBuffer(&indexBufferView);
-
-    m_cmdList->DrawIndexedInstanced(m_vertexCount, 1, 0, 0, 0);
+            m_cmdList->DrawIndexedInstanced(prim.VertexCount, 1, 0, 0, 0);
+        }
+    }
 
     {
         auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
