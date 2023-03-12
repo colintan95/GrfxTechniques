@@ -38,8 +38,8 @@ struct BufferViewInfo
 {
     int BufferIdx;
     int ByteOffset;
-    int ByteLength;
     int ComponentType;
+    int Count;
     std::string AccessorType;
 };
 
@@ -55,8 +55,8 @@ static void ParseBufferViewInfo(int accessorIdx, const json& gltfJson, BufferVie
 
     viewInfo->BufferIdx = bufferIdx;
     viewInfo->ByteOffset = accessorJson["byteOffset"] + bufferViewJson["byteOffset"];
-    viewInfo->ByteLength = bufferViewJson["byteLength"];
     viewInfo->ComponentType = accessorJson["componentType"];
+    viewInfo->Count = accessorJson["count"];
     viewInfo->AccessorType = accessorJson["type"];
 }
 
@@ -89,10 +89,12 @@ static void CreateVertexBufferView(int accessorIdx, const json& gltfJson,
         throw std::runtime_error("Unsupported accessor type.");
     }
 
+    int stride = componentSize * numComponents;
+
     view->BufferLocation = buffers[viewInfo.BufferIdx]->GetGPUVirtualAddress() +
         viewInfo.ByteOffset;
-    view->SizeInBytes = viewInfo.ByteLength;
-    view->StrideInBytes = componentSize * numComponents;
+    view->SizeInBytes = stride * viewInfo.Count;
+    view->StrideInBytes = stride;
 }
 
 static void CreateIndexBufferView(int accessorIdx, const json& gltfJson,
@@ -107,7 +109,7 @@ static void CreateIndexBufferView(int accessorIdx, const json& gltfJson,
 
     view->BufferLocation = buffers[viewInfo.BufferIdx]->GetGPUVirtualAddress() +
         viewInfo.ByteOffset;
-    view->SizeInBytes = viewInfo.ByteLength;
+    view->SizeInBytes = sizeof(uint16_t) * viewInfo.Count;
     view->Format = DXGI_FORMAT_R16_UINT;
 }
 
