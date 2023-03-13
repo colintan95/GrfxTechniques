@@ -21,7 +21,7 @@ ConstantBuffer<Constants> g_constants : register(b0);
 PSInput VSMain(VSInput input)
 {
     PSInput output;
-    output.Position = mul(g_constants.WorldViewProjMat, float4(input.Position, 1.0));
+    output.Position = mul(g_constants.WorldViewProjMat, float4(input.Position, 1.f));
     output.WorldPos = input.Position;
     output.Normal = input.Normal;
 

@@ -1,6 +1,10 @@
 add_executable(GrfxTechniques WIN32
     App.cpp
     App.h
+    DebugPass.cpp
+    DebugPass.h
+    gen/DebugPS.h
+    gen/DebugVS.h
     gen/ShaderPS.h
     gen/ShaderVS.h
     GpuResourceManager.cpp
@@ -9,6 +13,7 @@ add_executable(GrfxTechniques WIN32
     InputManager.h
     main.cpp
     Model.h
+    Utils.h
     ${IMGUI_DIR}/backends/imgui_impl_dx12.cpp
     ${IMGUI_DIR}/backends/imgui_impl_dx12.h
     ${IMGUI_DIR}/backends/imgui_impl_win32.cpp
@@ -21,6 +26,18 @@ add_executable(GrfxTechniques WIN32
     ${IMGUI_DIR}/imgui_internal.h
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp)
+
+compile_shader(
+    OUTPUT gen/DebugPS.h
+    TYPE ps
+    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/Debug.hlsl
+    VAR_NAME g_debugPS)
+
+compile_shader(
+    OUTPUT gen/DebugVS.h
+    TYPE vs
+    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/Debug.hlsl
+    VAR_NAME g_debugVS)
 
 compile_shader(
     OUTPUT gen/ShaderPS.h

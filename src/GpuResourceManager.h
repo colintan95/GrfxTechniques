@@ -6,6 +6,7 @@
 #include <winrt/base.h>
 
 #include <filesystem>
+#include <span>
 #include <vector>
 
 class GpuResourceManager
@@ -15,9 +16,11 @@ public:
 
     void LoadGltfModel(std::filesystem::path path, Model* model);
 
-private:
+    winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::span<const std::byte> data);
+
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::filesystem::path path);
 
+private:
     void ExecuteCommandListSync();
 
     ID3D12Device* m_device;

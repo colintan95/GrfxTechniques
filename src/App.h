@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DebugPass.h"
 #include "GpuResourceManager.h"
 #include "InputManager.h"
 
@@ -106,6 +107,8 @@ private:
     winrt::com_ptr<ID3D12Resource> m_depthTexture;
 
     winrt::com_ptr<ID3D12Resource> m_constantBuffer;
+
+    std::unique_ptr<DebugPass> m_debugPass;
 
     int m_currentFrame = 0;
 

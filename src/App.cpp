@@ -2,6 +2,7 @@
 
 #include "gen/ShaderPS.h"
 #include "gen/ShaderVS.h"
+#include "Utils.h"
 
 #include <d3dx12.h>
 #include <imgui.h>
@@ -39,6 +40,8 @@ App::App(HWND hwnd, InputManager* inputManager)
     CreateDepthTexture();
 
     CreateConstantBuffer();
+
+    m_debugPass = std::make_unique<DebugPass>(m_device.get(), m_resourceManager.get());
 
     m_upKeyDown = m_inputManager->AddKeyHoldListener('W');
     m_downKeyDown = m_inputManager->AddKeyHoldListener('S');
@@ -276,59 +279,10 @@ void App::CreateDepthTexture()
     m_device->CreateDepthStencilView(m_depthTexture.get(), &depthViewDesc, m_dsvHandle);
 }
 
-// struct CubeData
-// {
-//     std::vector<float> Positions;
-//     std::vector<uint16_t> Indices;
-
-//     int VertexCount = 0;
-// };
-
-// CubeData GetCubeData(float width)
-// {
-//     CubeData data{};
-
-//     float h = width / 2.f;
-
-//     data.Positions = {
-//         -h, h, h,
-//         -h, h, -h,
-//         -h, -h, -h,
-//         -h, -h, h,
-//         h, h, -h,
-//         h, h, h,
-//         h, -h, h,
-//         h, -h, -h,
-//     };
-
-//     data.Indices = {
-//         0, 1, 2,
-//         2, 3, 0, // -x face
-//         4, 5, 6,
-//         6, 7, 4, // +x face
-//         2, 7, 6,
-//         6, 3, 2, // -y face
-//         0, 5, 4,
-//         4, 1, 0, // +y face
-//         1, 4, 7,
-//         7, 2, 1, // -z face
-//         0, 3, 6,
-//         6, 5, 0  // +z face
-//     };
-
-//     data.VertexCount = static_cast<int>(data.Indices.size());
-
-//     return data;
-// }
-
-static size_t Align(size_t value, size_t alignment)
-{
-    return ((value - 1) / alignment + 1) * alignment;
-}
-
 void App::CreateConstantBuffer()
 {
-    size_t bufferSize = Align(sizeof(Constants), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+    size_t bufferSize = utils::Align(sizeof(Constants),
+                                     D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
     CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
     CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
@@ -392,15 +346,15 @@ void App::DrawModels()
     check_hresult(m_frames[m_currentFrame].DrawCmdAlloc->Reset());
     check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].DrawCmdAlloc.get(), nullptr));
 
-    m_cmdList->SetPipelineState(m_pipeline.get());
-    m_cmdList->SetGraphicsRootSignature(m_rootSig.get());
-
-    m_cmdList->SetGraphicsRootConstantBufferView(0, m_constantBuffer->GetGPUVirtualAddress());
+    m_cmdList->OMSetRenderTargets(1, &m_frames[m_currentFrame].RtvHandle, false, &m_dsvHandle);
 
     m_cmdList->RSSetViewports(1, &m_viewport);
     m_cmdList->RSSetScissorRects(1, &m_scissorRect);
 
-    m_cmdList->OMSetRenderTargets(1, &m_frames[m_currentFrame].RtvHandle, false, &m_dsvHandle);
+    m_cmdList->SetPipelineState(m_pipeline.get());
+    m_cmdList->SetGraphicsRootSignature(m_rootSig.get());
+
+    m_cmdList->SetGraphicsRootConstantBufferView(0, m_constantBuffer->GetGPUVirtualAddress());
 
     for (const auto& mesh : m_model.Meshes)
     {
@@ -416,6 +370,8 @@ void App::DrawModels()
             m_cmdList->DrawIndexedInstanced(prim.VertexCount, 1, 0, 0, 0);
         }
     }
+
+    m_debugPass->RecordCommands(m_constantsPtr->WorldViewProjMatrix, m_cmdList.get());
 
     check_hresult(m_cmdList->Close());
 

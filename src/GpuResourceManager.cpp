@@ -155,16 +155,9 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
     }
 }
 
-com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(fs::path path)
+
+com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(std::span<const std::byte> data)
 {
-    std::ifstream strm(path, std::ios::binary);
-    if (!strm.is_open())
-        throw std::runtime_error("Could not open file.");
-
-    std::vector<std::byte> data(fs::file_size(path));
-
-    strm.read(reinterpret_cast<char*>(data.data()), data.size());
-
     com_ptr<ID3D12Resource> uploadBuffer;
 
     {
@@ -205,6 +198,19 @@ com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(fs::path path)
     m_resources.push_back(resource);
 
     return resource;
+}
+
+com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(fs::path path)
+{
+    std::ifstream strm(path, std::ios::binary);
+    if (!strm.is_open())
+        throw std::runtime_error("Could not open file.");
+
+    std::vector<std::byte> data(fs::file_size(path));
+
+    strm.read(reinterpret_cast<char*>(data.data()), data.size());
+
+    return LoadBufferToGpu(data);
 }
 
 void GpuResourceManager::ExecuteCommandListSync()
