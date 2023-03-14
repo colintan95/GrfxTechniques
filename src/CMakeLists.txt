@@ -13,6 +13,7 @@ add_executable(GrfxTechniques WIN32
     InputManager.h
     main.cpp
     Model.h
+    Scene.h
     Utils.h
     ${IMGUI_DIR}/backends/imgui_impl_dx12.cpp
     ${IMGUI_DIR}/backends/imgui_impl_dx12.h

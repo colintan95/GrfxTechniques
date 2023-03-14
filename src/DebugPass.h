@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GpuResourceManager.h"
+#include "Scene.h"
 
 #include <d3d12.h>
 #include <glm/glm.hpp>
@@ -9,7 +10,7 @@
 class DebugPass
 {
 public:
-    DebugPass(ID3D12Device* device, GpuResourceManager* resourceManager);
+    DebugPass(Scene* scene, ID3D12Device* device, GpuResourceManager* resourceManager);
 
     void RecordCommands(const glm::mat4& viewProjMat, ID3D12GraphicsCommandList* cmdList);
 
@@ -19,6 +20,8 @@ private:
     void CreateVertexBuffers();
 
     void CreateConstantBuffer();
+
+    Scene* m_scene;
 
     ID3D12Device* m_device;
 

@@ -41,7 +41,7 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     CreateConstantBuffer();
 
-    m_debugPass = std::make_unique<DebugPass>(m_device.get(), m_resourceManager.get());
+    m_debugPass = std::make_unique<DebugPass>(&m_scene, m_device.get(), m_resourceManager.get());
 
     m_upKeyDown = m_inputManager->AddKeyHoldListener('W');
     m_downKeyDown = m_inputManager->AddKeyHoldListener('S');
@@ -51,6 +51,8 @@ App::App(HWND hwnd, InputManager* inputManager)
     m_cameraPos = glm::vec3(0.f, 0.f, -4.f);
 
     m_resourceManager->LoadGltfModel("assets/box/Box.gltf", &m_model);
+
+    m_scene.LightPos = glm::vec3(0.f, 1.f, -1.5f);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -297,8 +299,6 @@ void App::CreateConstantBuffer()
     m_projMat = glm::perspective(
         std::numbers::pi_v<float> / 4.f,
         static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight), 0.1f, 1000.f);
-
-    m_constantsPtr->LightPos = glm::vec4(0.f, 1.f, -1.5f, 1.f);
 }
 
 void App::Render()
@@ -342,6 +342,7 @@ void App::DrawModels()
         glm::translate(glm::mat4(1.f), -m_cameraPos);
 
     m_constantsPtr->WorldViewProjMatrix = m_projMat * viewMat;
+    m_constantsPtr->LightPos = glm::vec4(m_scene.LightPos, 1.f);
 
     check_hresult(m_frames[m_currentFrame].DrawCmdAlloc->Reset());
     check_hresult(m_cmdList->Reset(m_frames[m_currentFrame].DrawCmdAlloc.get(), nullptr));

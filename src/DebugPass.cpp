@@ -10,8 +10,8 @@
 using winrt::check_hresult;
 using winrt::com_ptr;
 
-DebugPass::DebugPass(ID3D12Device* device, GpuResourceManager* resourceManager)
-    : m_device(device), m_resourceManager(resourceManager)
+DebugPass::DebugPass(Scene* scene, ID3D12Device* device, GpuResourceManager* resourceManager)
+    : m_scene(scene), m_device(device), m_resourceManager(resourceManager)
 {
     CreatePipelineState();
 
@@ -150,7 +150,7 @@ void DebugPass::CreateConstantBuffer()
 
 void DebugPass::RecordCommands(const glm::mat4& viewProjMat, ID3D12GraphicsCommandList* cmdList)
 {
-    glm::mat4 modelMat = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -2.f)) *
+    glm::mat4 modelMat = glm::translate(glm::mat4(1.f), m_scene->LightPos) *
         glm::scale(glm::mat4(1.f), glm::vec3(0.1f));
 
     m_constantsPtr->WorldViewProjMatrix = viewProjMat * modelMat;

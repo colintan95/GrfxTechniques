@@ -3,6 +3,7 @@
 #include "DebugPass.h"
 #include "GpuResourceManager.h"
 #include "InputManager.h"
+#include "Scene.h"
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -134,6 +135,8 @@ private:
     };
 
     Constants* m_constantsPtr = nullptr;
+
+    Scene m_scene;
 
     Model m_model;
 };
