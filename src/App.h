@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Camera.h"
 #include "DebugPass.h"
 #include "GpuResourceManager.h"
 #include "InputManager.h"
@@ -113,20 +114,7 @@ private:
 
     int m_currentFrame = 0;
 
-    InputHandle<bool> m_upKeyDown;
-    InputHandle<bool> m_downKeyDown;
-    InputHandle<bool> m_leftKeyDown;
-    InputHandle<bool> m_rightKeyDown;
-
-    InputHandle<bool> m_middleMouseDown;
-
-    glm::vec3 m_cameraPos;
-
-    std::optional<int> m_prevMouseX;
-    std::optional<int> m_prevMouseY;
-
-    float m_cameraYaw = 0.f;
-    float m_cameraPitch = 0.f;
+    std::unique_ptr<Camera> m_camera;
 
     glm::mat4 m_projMat;
 

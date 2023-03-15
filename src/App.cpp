@@ -43,14 +43,7 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     m_debugPass = std::make_unique<DebugPass>(&m_scene, m_device.get(), m_resourceManager.get());
 
-    m_upKeyDown = m_inputManager->AddKeyHoldListener('W');
-    m_downKeyDown = m_inputManager->AddKeyHoldListener('S');
-    m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
-    m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
-
-    m_middleMouseDown = m_inputManager->AddMouseHouseListener(MouseButtonType::Middle);
-
-    m_cameraPos = glm::vec3(0.f, 0.f, -4.f);
+    m_camera = std::make_unique<Camera>(m_inputManager);
 
     m_resourceManager->LoadGltfModel("assets/box/Box.gltf", &m_model);
 
@@ -340,10 +333,7 @@ void App::BeginFrame()
 
 void App::DrawModels()
 {
-    glm::mat4 viewMat = glm::yawPitchRoll(-m_cameraYaw, -m_cameraPitch, 0.f) *
-        glm::translate(glm::mat4(1.f), -m_cameraPos);
-
-    m_constantsPtr->WorldViewProjMatrix = m_projMat * viewMat;
+    m_constantsPtr->WorldViewProjMatrix = m_projMat * m_camera->GetViewMat();
     m_constantsPtr->LightPos = glm::vec4(m_scene.LightPos, 1.f);
 
     check_hresult(m_frames[m_currentFrame].DrawCmdAlloc->Reset());
@@ -482,82 +472,5 @@ void App::ExecuteAndWait()
 
 void App::Tick(double elapsedSec)
 {
-    glm::mat4 rotateMat = glm::yawPitchRoll(m_cameraYaw, m_cameraPitch, 0.f);
-
-    glm::vec3 forwardVec = glm::vec3(rotateMat * glm::vec4(0.f, 0.f, 1.f, 0.f));
-    glm::vec3 rightVec = glm::vec3(rotateMat * glm::vec4(1.f, 0.f, 0.f, 1.f));
-
-    static constexpr float moveSpeed = 1.0f;
-
-    float moveDist = static_cast<float>(elapsedSec) * moveSpeed;
-    float moveDiagDist = static_cast<float>(elapsedSec) * moveSpeed / std::sqrt(2.f);
-
-    bool upKeyDown = m_upKeyDown.GetValue();
-    bool downKeyDown = m_downKeyDown.GetValue();
-    bool leftKeyDown = m_leftKeyDown.GetValue();
-    bool rightKeyDown = m_rightKeyDown.GetValue();
-
-    if (upKeyDown && !downKeyDown)
-    {
-        if (leftKeyDown && !rightKeyDown)
-        {
-            m_cameraPos += moveDiagDist * forwardVec;
-            m_cameraPos -= moveDiagDist * rightVec;
-        }
-        else if (rightKeyDown)
-        {
-            m_cameraPos += moveDiagDist * forwardVec;
-            m_cameraPos += moveDiagDist * rightVec;
-        }
-        else
-        {
-            m_cameraPos += moveDist * forwardVec;
-        }
-    }
-    else if (downKeyDown)
-    {
-        if (leftKeyDown && !rightKeyDown)
-        {
-            m_cameraPos -= moveDiagDist * forwardVec;
-            m_cameraPos -= moveDiagDist * rightVec;
-        }
-        else if (rightKeyDown)
-        {
-            m_cameraPos -= moveDiagDist * forwardVec;
-            m_cameraPos += moveDiagDist * rightVec;
-        }
-        else
-        {
-            m_cameraPos -= moveDist * forwardVec;
-        }
-    }
-    else
-    {
-        if (leftKeyDown && !rightKeyDown)
-        {
-            m_cameraPos -= moveDist * rightVec;
-        }
-        else if (rightKeyDown)
-        {
-            m_cameraPos += moveDist * rightVec;
-        }
-    }
-
-    static constexpr float lookSpeed = 0.0005f;
-
-    POINT currentMousePos{};
-    check_bool(GetCursorPos(&currentMousePos));
-
-    if (m_prevMouseX)
-    {
-        m_cameraYaw += static_cast<float>(currentMousePos.x - *m_prevMouseX) * lookSpeed;
-    }
-
-    if (m_prevMouseY)
-    {
-        m_cameraPitch += static_cast<float>(currentMousePos.y - *m_prevMouseY) * lookSpeed;
-    }
-
-    m_prevMouseX = currentMousePos.x;
-    m_prevMouseY = currentMousePos.y;
+    m_camera->Tick(elapsedSec);
 }

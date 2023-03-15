@@ -1,6 +1,8 @@
 add_executable(GrfxTechniques WIN32
     App.cpp
     App.h
+    Camera.cpp
+    Camera.h
     DebugPass.cpp
     DebugPass.h
     gen/DebugPS.h
