@@ -1,6 +1,7 @@
 #include "Camera.h"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 #include <winrt/base.h>
 
 #pragma warning(push)
@@ -25,84 +26,109 @@ Camera::Camera(InputManager* inputManager)
 
 void Camera::Tick(double elapsedSec)
 {
-    glm::mat4 rotateMat = glm::yawPitchRoll(m_yaw, m_pitch, 0.f);
-
-    glm::vec3 forwardVec = glm::vec3(rotateMat * glm::vec4(0.f, 0.f, 1.f, 0.f));
-    glm::vec3 rightVec = glm::vec3(rotateMat * glm::vec4(1.f, 0.f, 0.f, 1.f));
-
-    static constexpr float moveSpeed = 1.0f;
-
-    float moveDist = static_cast<float>(elapsedSec) * moveSpeed;
-    float moveDiagDist = static_cast<float>(elapsedSec) * moveSpeed / std::sqrt(2.f);
-
-    bool upKeyDown = m_upKeyDown.GetValue();
-    bool downKeyDown = m_downKeyDown.GetValue();
-    bool leftKeyDown = m_leftKeyDown.GetValue();
-    bool rightKeyDown = m_rightKeyDown.GetValue();
-
-    if (upKeyDown && !downKeyDown)
-    {
-        if (leftKeyDown && !rightKeyDown)
-        {
-            m_position += moveDiagDist * forwardVec;
-            m_position -= moveDiagDist * rightVec;
-        }
-        else if (rightKeyDown)
-        {
-            m_position += moveDiagDist * forwardVec;
-            m_position += moveDiagDist * rightVec;
-        }
-        else
-        {
-            m_position += moveDist * forwardVec;
-        }
-    }
-    else if (downKeyDown)
-    {
-        if (leftKeyDown && !rightKeyDown)
-        {
-            m_position -= moveDiagDist * forwardVec;
-            m_position -= moveDiagDist * rightVec;
-        }
-        else if (rightKeyDown)
-        {
-            m_position -= moveDiagDist * forwardVec;
-            m_position += moveDiagDist * rightVec;
-        }
-        else
-        {
-            m_position -= moveDist * forwardVec;
-        }
-    }
-    else
-    {
-        if (leftKeyDown && !rightKeyDown)
-        {
-            m_position -= moveDist * rightVec;
-        }
-        else if (rightKeyDown)
-        {
-            m_position += moveDist * rightVec;
-        }
-    }
-
-    static constexpr float lookSpeed = 0.0005f;
-
     POINT currentMousePos{};
     check_bool(GetCursorPos(&currentMousePos));
 
+    float mouseXDiff = 0.f;
+    float mouseYDiff = 0.f;
+
     if (m_prevMouseX)
     {
-        m_yaw += static_cast<float>(currentMousePos.x - *m_prevMouseX) * lookSpeed;
+        mouseXDiff = static_cast<float>(currentMousePos.x - *m_prevMouseX);
     }
 
     if (m_prevMouseY)
     {
-        m_pitch += static_cast<float>(currentMousePos.y - *m_prevMouseY) * lookSpeed;
+        mouseYDiff = static_cast<float>(currentMousePos.y - *m_prevMouseY);
     }
 
     m_prevMouseX = currentMousePos.x;
     m_prevMouseY = currentMousePos.y;
+
+    if (m_middleMouseDown.GetValue())
+    {
+        static constexpr float lookSpeed = 0.005f;
+
+        float rotateX = mouseYDiff * lookSpeed;
+
+        m_position = glm::rotateX(m_position, rotateX);
+        m_pitch += rotateX;
+    }
+    else
+    {
+        glm::mat4 rotateMat = glm::yawPitchRoll(m_yaw, m_pitch, 0.f);
+
+        glm::vec3 forwardVec = glm::vec3(rotateMat * glm::vec4(0.f, 0.f, 1.f, 0.f));
+        glm::vec3 rightVec = glm::vec3(rotateMat * glm::vec4(1.f, 0.f, 0.f, 1.f));
+
+        static constexpr float moveSpeed = 1.0f;
+
+        float moveDist = static_cast<float>(elapsedSec) * moveSpeed;
+        float moveDiagDist = static_cast<float>(elapsedSec) * moveSpeed / std::sqrt(2.f);
+
+        bool upKeyDown = m_upKeyDown.GetValue();
+        bool downKeyDown = m_downKeyDown.GetValue();
+        bool leftKeyDown = m_leftKeyDown.GetValue();
+        bool rightKeyDown = m_rightKeyDown.GetValue();
+
+        if (upKeyDown && !downKeyDown)
+        {
+            if (leftKeyDown && !rightKeyDown)
+            {
+                m_position += moveDiagDist * forwardVec;
+                m_position -= moveDiagDist * rightVec;
+            }
+            else if (rightKeyDown)
+            {
+                m_position += moveDiagDist * forwardVec;
+                m_position += moveDiagDist * rightVec;
+            }
+            else
+            {
+                m_position += moveDist * forwardVec;
+            }
+        }
+        else if (downKeyDown)
+        {
+            if (leftKeyDown && !rightKeyDown)
+            {
+                m_position -= moveDiagDist * forwardVec;
+                m_position -= moveDiagDist * rightVec;
+            }
+            else if (rightKeyDown)
+            {
+                m_position -= moveDiagDist * forwardVec;
+                m_position += moveDiagDist * rightVec;
+            }
+            else
+            {
+                m_position -= moveDist * forwardVec;
+            }
+        }
+        else
+        {
+            if (leftKeyDown && !rightKeyDown)
+            {
+                m_position -= moveDist * rightVec;
+            }
+            else if (rightKeyDown)
+            {
+                m_position += moveDist * rightVec;
+            }
+        }
+
+        static constexpr float lookSpeed = 0.0005f;
+
+        if (m_prevMouseX)
+        {
+            m_yaw += mouseXDiff * lookSpeed;
+        }
+
+        if (m_prevMouseY)
+        {
+            m_pitch += mouseYDiff * lookSpeed;
+        }
+    }
 }
 
 glm::mat4 Camera::GetViewMat()

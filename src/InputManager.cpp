@@ -50,7 +50,7 @@ void InputManager::HandleMouseDown(MouseButtonType type)
 void InputManager::HandleMouseUp(MouseButtonType type)
 {
     TraverseEntries(m_mouseHoldEntries[static_cast<int>(type)], [](MouseHoldEntry& entry) {
-        *entry.Value = true;
+        *entry.Value = false;
     });
 }
 
