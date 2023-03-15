@@ -118,6 +118,8 @@ private:
     InputHandle<bool> m_leftKeyDown;
     InputHandle<bool> m_rightKeyDown;
 
+    InputHandle<bool> m_middleMouseDown;
+
     glm::vec3 m_cameraPos;
 
     std::optional<int> m_prevMouseX;

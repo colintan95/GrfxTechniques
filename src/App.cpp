@@ -48,6 +48,8 @@ App::App(HWND hwnd, InputManager* inputManager)
     m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
     m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
 
+    m_middleMouseDown = m_inputManager->AddMouseHouseListener(MouseButtonType::Middle);
+
     m_cameraPos = glm::vec3(0.f, 0.f, -4.f);
 
     m_resourceManager->LoadGltfModel("assets/box/Box.gltf", &m_model);

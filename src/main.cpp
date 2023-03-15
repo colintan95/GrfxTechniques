@@ -11,12 +11,12 @@ static InputManager* g_inputManager = nullptr;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
-static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
+static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
-    if (ImGui_ImplWin32_WndProcHandler(hwnd, message, wparam, lparam))
+    if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
         return 1;
 
-    switch (message)
+    switch (msg)
     {
         case WM_DESTROY:
             PostQuitMessage(0);
@@ -25,7 +25,7 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARA
 
     if (g_inputManager)
     {
-        switch (message)
+        switch (msg)
         {
             case WM_KEYDOWN:
                 g_inputManager->HandleKeyDown(static_cast<UINT>(wparam));
@@ -33,10 +33,16 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPARA
             case WM_KEYUP:
                 g_inputManager->HandleKeyUp(static_cast<UINT>(wparam));
                 break;
+            case WM_MBUTTONDOWN:
+                g_inputManager->HandleMouseDown(MouseButtonType::Middle);
+                break;
+            case WM_MBUTTONUP:
+                g_inputManager->HandleMouseUp(MouseButtonType::Middle);
+                break;
         }
     }
 
-    return DefWindowProc(hwnd, message, wparam, lparam);
+    return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
 static void CheckMMResult(MMRESULT result)
