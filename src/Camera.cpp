@@ -47,12 +47,15 @@ void Camera::Tick(double elapsedSec)
 
     if (m_middleMouseDown.GetValue())
     {
+        glm::mat4 rotateMat = glm::yawPitchRoll(m_yaw, m_pitch, 0.f);
+
+        glm::vec3 upVec = glm::vec3(rotateMat * glm::vec4(0.f, 1.f, 0.f, 1.f));
+        glm::vec3 rightVec = glm::vec3(rotateMat * glm::vec4(1.f, 0.f, 0.f, 1.f));
+
         static constexpr float lookSpeed = 0.005f;
 
-        float rotateX = mouseYDiff * lookSpeed;
-
-        m_position = glm::rotateX(m_position, rotateX);
-        m_pitch += rotateX;
+        m_position += mouseXDiff * lookSpeed * rightVec;
+        m_position -= mouseYDiff * lookSpeed * upVec;
     }
     else
     {
