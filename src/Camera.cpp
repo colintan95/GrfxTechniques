@@ -61,7 +61,7 @@ void Camera::Tick(double elapsedSec)
         glm::vec3 forwardVec = glm::vec3(rotateMat * glm::vec4(0.f, 0.f, 1.f, 0.f));
         glm::vec3 rightVec = glm::vec3(rotateMat * glm::vec4(1.f, 0.f, 0.f, 1.f));
 
-        static constexpr float moveSpeed = 1.0f;
+        static constexpr float moveSpeed = 2.0f;
 
         float moveDist = static_cast<float>(elapsedSec) * moveSpeed;
         float moveDiagDist = static_cast<float>(elapsedSec) * moveSpeed / std::sqrt(2.f);
@@ -117,7 +117,7 @@ void Camera::Tick(double elapsedSec)
             }
         }
 
-        static constexpr float lookSpeed = 0.0005f;
+        static constexpr float lookSpeed = 0.001f;
 
         if (m_prevMouseX)
         {
@@ -133,5 +133,5 @@ void Camera::Tick(double elapsedSec)
 
 glm::mat4 Camera::GetViewMat()
 {
-    return glm::yawPitchRoll(-m_yaw, -m_pitch, 0.f) * glm::translate(glm::mat4(1.f), -m_position);
+    return glm::eulerAngleXY(-m_pitch, -m_yaw) * glm::translate(glm::mat4(1.f), -m_position);
 }
