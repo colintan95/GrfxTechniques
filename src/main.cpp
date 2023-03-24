@@ -34,10 +34,10 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
                 g_inputManager->HandleKeyUp(static_cast<UINT>(wparam));
                 break;
             case WM_MBUTTONDOWN:
-                g_inputManager->HandleMouseDown(MouseButtonType::Middle);
+                g_inputManager->HandleMouseDown(MouseButton::Middle);
                 break;
             case WM_MBUTTONUP:
-                g_inputManager->HandleMouseUp(MouseButtonType::Middle);
+                g_inputManager->HandleMouseUp(MouseButton::Middle);
                 break;
         }
     }

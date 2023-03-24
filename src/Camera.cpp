@@ -21,7 +21,8 @@ Camera::Camera(InputManager* inputManager)
     m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
     m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
 
-    m_middleMouseDown = m_inputManager->AddMouseHouseListener(MouseButtonType::Middle);
+    m_middleMouseDown = m_inputManager->AddMouseHoldListener(MouseButton::Middle,
+                                                             ModifierKey::Shift);
 }
 
 void Camera::Tick(double elapsedSec)

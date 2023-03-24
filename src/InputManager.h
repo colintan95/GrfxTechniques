@@ -39,11 +39,21 @@ private:
     std::shared_ptr<T> m_value;
 };
 
-enum class MouseButtonType
+enum class MouseButton
 {
     Left,
     Middle,
     Right
+};
+
+struct ModifierKey
+{
+    enum
+    {
+        None = 0,
+        Shift = 1,
+        Ctrl = 2
+    };
 };
 
 class InputManager
@@ -51,13 +61,13 @@ class InputManager
 public:
     InputHandle<bool> AddKeyHoldListener(UINT keyCode);
 
-    InputHandle<bool> AddMouseHouseListener(MouseButtonType type);
+    InputHandle<bool> AddMouseHoldListener(MouseButton button, int modifier = ModifierKey::None);
 
     void HandleKeyDown(UINT keyCode);
     void HandleKeyUp(UINT keyCode);
 
-    void HandleMouseDown(MouseButtonType button);
-    void HandleMouseUp(MouseButtonType button);
+    void HandleMouseDown(MouseButton button);
+    void HandleMouseUp(MouseButton button);
 
 private:
     template<typename T>
@@ -110,10 +120,14 @@ private:
     {
         InputId Id;
         std::shared_ptr<bool> Value;
+
+        int Modifier = ModifierKey::None;
     };
 
     std::unordered_map<int, std::vector<MouseHoldEntry>> m_mouseHoldEntries;
 
     int m_currentId = 1;
     std::unordered_set<InputId> m_activeIds;
+
+    bool m_shiftDown = false;
 };
