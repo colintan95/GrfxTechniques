@@ -20,7 +20,7 @@ public:
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::span<const std::byte> data);
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::filesystem::path path);
 
-    size_t LoadTextureToGpu(std::filesystem::path path);
+    int LoadTextureToGpu(std::filesystem::path path);
 
 private:
     void ExecuteCommandListSync();

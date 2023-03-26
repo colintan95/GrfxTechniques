@@ -166,12 +166,61 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
             LoadBufferToGpu(path.parent_path() / bufferJson["uri"].get<std::string>()));
     }
 
-    std::vector<size_t> textureIds;
+    std::vector<int> textureIds;
 
     for (const auto& imageJson : gltfJson["images"])
     {
         textureIds.push_back(
             LoadTextureToGpu(path.parent_path() / imageJson["uri"].get<std::string>()));
+    }
+
+    for (const auto& materialJson : gltfJson["materials"])
+    {
+        Material material{};
+
+        const auto& pbrJson = materialJson["pbrMetallicRoughness"];
+
+        if (pbrJson.contains("baseColorFactor"))
+        {
+            const auto& factor = pbrJson["baseColorFactor"];
+            material.BaseColorFactor = glm::vec4(factor[0], factor[1], factor[2], factor[3]);
+        }
+        else
+        {
+            material.BaseColorFactor = glm::vec4(1.f, 1.f, 1.f, 1.f);
+        }
+
+        if (pbrJson.contains("metallicFactor"))
+        {
+            float factor = pbrJson["metallicFactor"];
+            material.MetallicFactor = factor;
+        }
+
+        if (pbrJson.contains("roughnessFactor"))
+        {
+            float factor = pbrJson["roughnessFactor"];
+            material.RoughnessFactor = factor;
+        }
+
+        if (pbrJson.contains("baseColorTexture"))
+        {
+            int idx = pbrJson["baseColorTexture"]["index"];
+            material.BaseColorTextureId = textureIds[idx];
+        }
+
+        if (pbrJson.contains("metallicRoughnessTexture"))
+        {
+            int idx = pbrJson["metallicRoughnessTexture"]["index"];
+            material.RoughnessTextureId = textureIds[idx];
+        }
+
+        if (pbrJson.contains("normalTexture"))
+        {
+            int idx = pbrJson["normalTexture"]["index"];
+            material.NormalTextureId = textureIds[idx];
+        }
+
+        model->Materials.push_back(std::move(material));
     }
 
     for (const auto& meshJson : gltfJson["meshes"])
@@ -182,26 +231,33 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
         {
             Primitive prim{};
 
-            int posAccessorIdx = primJson["attributes"]["POSITION"];
+            const auto& attrJson = primJson["attributes"];
+
+            int posAccessorIdx = attrJson["POSITION"];
             CreateVertexBufferView(posAccessorIdx, gltfJson, buffers, &prim.Positions);
 
-            int normalsAccessorIdx = primJson["attributes"]["NORMAL"];
+            int normalsAccessorIdx = attrJson["NORMAL"];
             CreateVertexBufferView(normalsAccessorIdx, gltfJson, buffers, &prim.Normals);
 
-            if (primJson["attributes"].contains("TEXCOORD_0"))
+            if (attrJson.contains("TEXCOORD_0"))
             {
-                int accessorIdx = primJson["attributes"]["TEXCOORD_0"];
+                int accessorIdx = attrJson["TEXCOORD_0"];
                 CreateVertexBufferView(accessorIdx, gltfJson, buffers, &prim.TexCoords);
             }
 
-            if (primJson["attributes"].contains("TANGENT"))
+            if (attrJson.contains("TANGENT"))
             {
-                int accessorIdx = primJson["attributes"]["TANGENT"];
+                int accessorIdx = attrJson["TANGENT"];
                 CreateVertexBufferView(accessorIdx, gltfJson, buffers, &prim.Tangents);
             }
 
             int indicesAccessorIdx = primJson["indices"];
             CreateIndexBufferView(indicesAccessorIdx, gltfJson, buffers, &prim.Indices);
+
+            if (attrJson.contains("material"))
+            {
+                prim.MaterialIdx = attrJson["material"];
+            }
 
             prim.VertexCount = gltfJson["accessors"][indicesAccessorIdx]["count"];
 
@@ -269,7 +325,7 @@ com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(fs::path path)
     return LoadBufferToGpu(data);
 }
 
-size_t GpuResourceManager::LoadTextureToGpu(fs::path path)
+int GpuResourceManager::LoadTextureToGpu(fs::path path)
 {
     com_ptr<IWICBitmapDecoder> decoder;
     check_hresult(m_wicFactory->CreateDecoderFromFilename(path.wstring().c_str(), nullptr,
@@ -375,7 +431,7 @@ size_t GpuResourceManager::LoadTextureToGpu(fs::path path)
 
     ExecuteCommandListSync();
 
-    size_t textureId = m_textures.size();
+    int textureId = static_cast<int>(m_textures.size());
 
     m_textures.push_back(resource);
 

@@ -14,6 +14,8 @@ struct Primitive
 
     D3D12_INDEX_BUFFER_VIEW Indices;
 
+    int MaterialIdx = -1;
+
     int VertexCount;
 };
 
@@ -24,15 +26,19 @@ struct Mesh
 
 struct Material
 {
-    glm::vec4 BaseColor;
+    glm::vec4 BaseColorFactor;
+    float MetallicFactor = 1.f;
+    float RoughnessFactor = 1.f;
 
-    int BaseColorTextureId;
-    int RoughnessTextureId;
-    int NormalTextureId;
+    int BaseColorTextureId = -1;
+    int RoughnessTextureId = -1;
+    int NormalTextureId = -1;
 };
 
 struct Model
 {
     std::vector<Mesh> Meshes;
+
+    std::vector<Material> Materials;
 };
 
