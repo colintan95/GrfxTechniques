@@ -23,13 +23,20 @@ private:
     float m_yaw = 0.f;
     float m_pitch = 0.f;
 
-    InputHandle<bool> m_upKeyDown;
-    InputHandle<bool> m_downKeyDown;
-    InputHandle<bool> m_leftKeyDown;
-    InputHandle<bool> m_rightKeyDown;
+    bool m_upKeyDown = false;
+    bool m_downKeyDown = false;
+    bool m_leftKeyDown = false;
+    bool m_rightKeyDown = false;
 
-    InputHandle<bool> m_middleMouseDown;
+    bool m_middleMouseDown = false;
 
     std::optional<int> m_prevMouseX;
     std::optional<int> m_prevMouseY;
+
+    InputHandle m_upKeyDownHandle;
+    InputHandle m_downKeyDownHandle;
+    InputHandle m_leftKeyDownHandle;
+    InputHandle m_rightKeyDownHandle;
+
+    InputHandle m_middleMouseDownHandle;
 };

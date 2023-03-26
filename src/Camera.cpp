@@ -16,13 +16,14 @@ Camera::Camera(InputManager* inputManager)
 {
     m_position = glm::vec3(0.f, 0.f, -4.f);
 
-    m_upKeyDown = m_inputManager->AddKeyHoldListener('W');
-    m_downKeyDown = m_inputManager->AddKeyHoldListener('S');
-    m_leftKeyDown = m_inputManager->AddKeyHoldListener('A');
-    m_rightKeyDown = m_inputManager->AddKeyHoldListener('D');
+    m_upKeyDownHandle = m_inputManager->AddKeyHoldListener('W', &m_upKeyDown);
+    m_downKeyDownHandle = m_inputManager->AddKeyHoldListener('S', &m_downKeyDown);
+    m_leftKeyDownHandle = m_inputManager->AddKeyHoldListener('A', &m_leftKeyDown);
+    m_rightKeyDownHandle = m_inputManager->AddKeyHoldListener('D', &m_rightKeyDown);
 
-    m_middleMouseDown = m_inputManager->AddMouseHoldListener(MouseButton::Middle,
-                                                             ModifierKey::Shift);
+    m_middleMouseDownHandle = m_inputManager->AddMouseHoldListener(MouseButton::Middle,
+                                                                   &m_middleMouseDown,
+                                                                   ModifierKey::Shift);
 }
 
 void Camera::Tick(double elapsedSec)
@@ -46,7 +47,7 @@ void Camera::Tick(double elapsedSec)
     m_prevMouseX = currentMousePos.x;
     m_prevMouseY = currentMousePos.y;
 
-    if (m_middleMouseDown.GetValue())
+    if (m_middleMouseDown)
     {
         glm::mat4 rotateMat = glm::yawPitchRoll(m_yaw, m_pitch, 0.f);
 
@@ -70,19 +71,14 @@ void Camera::Tick(double elapsedSec)
         float moveDist = static_cast<float>(elapsedSec) * moveSpeed;
         float moveDiagDist = static_cast<float>(elapsedSec) * moveSpeed / std::sqrt(2.f);
 
-        bool upKeyDown = m_upKeyDown.GetValue();
-        bool downKeyDown = m_downKeyDown.GetValue();
-        bool leftKeyDown = m_leftKeyDown.GetValue();
-        bool rightKeyDown = m_rightKeyDown.GetValue();
-
-        if (upKeyDown && !downKeyDown)
+        if (m_upKeyDown && !m_downKeyDown)
         {
-            if (leftKeyDown && !rightKeyDown)
+            if (m_leftKeyDown && !m_rightKeyDown)
             {
                 m_position += moveDiagDist * forwardVec;
                 m_position -= moveDiagDist * rightVec;
             }
-            else if (rightKeyDown)
+            else if (m_rightKeyDown)
             {
                 m_position += moveDiagDist * forwardVec;
                 m_position += moveDiagDist * rightVec;
@@ -92,14 +88,14 @@ void Camera::Tick(double elapsedSec)
                 m_position += moveDist * forwardVec;
             }
         }
-        else if (downKeyDown)
+        else if (m_downKeyDown)
         {
-            if (leftKeyDown && !rightKeyDown)
+            if (m_leftKeyDown && !m_rightKeyDown)
             {
                 m_position -= moveDiagDist * forwardVec;
                 m_position -= moveDiagDist * rightVec;
             }
-            else if (rightKeyDown)
+            else if (m_rightKeyDown)
             {
                 m_position -= moveDiagDist * forwardVec;
                 m_position += moveDiagDist * rightVec;
@@ -111,11 +107,11 @@ void Camera::Tick(double elapsedSec)
         }
         else
         {
-            if (leftKeyDown && !rightKeyDown)
+            if (m_leftKeyDown && !m_rightKeyDown)
             {
                 m_position -= moveDist * rightVec;
             }
-            else if (rightKeyDown)
+            else if (m_rightKeyDown)
             {
                 m_position += moveDist * rightVec;
             }

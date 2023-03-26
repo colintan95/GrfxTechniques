@@ -10,33 +10,17 @@
 
 using InputId = int;
 
-template<typename T>
 class InputHandle
 {
 public:
     InputHandle() = default;
-
-    ~InputHandle()
-    {
-        if (m_id && m_id.use_count() == 1)
-        {
-            assert(m_manager);
-            m_manager->RemoveId(*m_id);
-        }
-    }
-
-    const T& GetValue() const
-    {
-        return *m_value;
-    }
+    ~InputHandle();
 
 private:
     friend class InputManager;
 
     InputManager* m_manager;
     std::shared_ptr<InputId> m_id;
-
-    std::shared_ptr<T> m_value;
 };
 
 enum class MouseButton
@@ -59,9 +43,10 @@ struct ModifierKey
 class InputManager
 {
 public:
-    InputHandle<bool> AddKeyHoldListener(UINT keyCode);
+    InputHandle AddKeyHoldListener(UINT keyCode, bool* value);
 
-    InputHandle<bool> AddMouseHoldListener(MouseButton button, int modifier = ModifierKey::None);
+    InputHandle AddMouseHoldListener(MouseButton button, bool* value,
+                                     int modifier = ModifierKey::None);
 
     void HandleKeyDown(UINT keyCode);
     void HandleKeyUp(UINT keyCode);
@@ -70,7 +55,6 @@ public:
     void HandleMouseUp(MouseButton button);
 
 private:
-    template<typename T>
     friend class InputHandle;
 
     template<typename Entry, typename Fn>
@@ -91,27 +75,14 @@ private:
         }
     }
 
-    template<typename T>
-    InputHandle<T> CreateHandle()
-    {
-        InputHandle<T> handle;
-        handle.m_manager = this;
-        handle.m_id = std::make_shared<InputId>(m_currentId);
-        m_activeIds.insert(m_currentId);
-
-        ++m_currentId;
-
-        handle.m_value = std::make_shared<T>();
-
-        return handle;
-    }
+    InputHandle CreateHandle();
 
     void RemoveId(InputId id);
 
     struct KeyHoldEntry
     {
         InputId Id;
-        std::shared_ptr<bool> Value;
+        bool* Value;
     };
 
     std::unordered_map<UINT, std::vector<KeyHoldEntry>> m_keyHoldEntries;
@@ -119,7 +90,7 @@ private:
     struct MouseHoldEntry
     {
         InputId Id;
-        std::shared_ptr<bool> Value;
+        bool* Value;
 
         int Modifier = ModifierKey::None;
     };

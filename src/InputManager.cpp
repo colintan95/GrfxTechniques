@@ -1,25 +1,34 @@
 #include "InputManager.h"
 
-InputHandle<bool> InputManager::AddKeyHoldListener(UINT keyCode)
+InputHandle::~InputHandle()
 {
-    auto handle = CreateHandle<bool>();
+    if (m_id && m_id.use_count() == 1)
+    {
+        assert(m_manager);
+        m_manager->RemoveId(*m_id);
+    }
+}
+
+InputHandle InputManager::AddKeyHoldListener(UINT keyCode, bool* value)
+{
+    auto handle = CreateHandle();
 
     KeyHoldEntry entry{};
     entry.Id = *handle.m_id;
-    entry.Value = handle.m_value;
+    entry.Value = value;
 
     m_keyHoldEntries[keyCode].push_back(entry);
 
     return handle;
 }
 
-InputHandle<bool> InputManager::AddMouseHoldListener(MouseButton type, int modifier)
+InputHandle InputManager::AddMouseHoldListener(MouseButton type, bool* value, int modifier)
 {
-    auto handle = CreateHandle<bool>();
+    auto handle = CreateHandle();
 
     MouseHoldEntry entry{};
     entry.Id = *handle.m_id;
-    entry.Value = handle.m_value;
+    entry.Value = value;
     entry.Modifier = modifier;
 
     m_mouseHoldEntries[static_cast<int>(type)].push_back(entry);
@@ -77,6 +86,19 @@ void InputManager::HandleMouseUp(MouseButton type)
         *entry.Value = false;
     });
 }
+
+InputHandle InputManager::CreateHandle()
+{
+    InputHandle handle;
+    handle.m_manager = this;
+    handle.m_id = std::make_shared<InputId>(m_currentId);
+    m_activeIds.insert(m_currentId);
+
+    ++m_currentId;
+
+    return handle;
+}
+
 
 void InputManager::RemoveId(InputId id)
 {
