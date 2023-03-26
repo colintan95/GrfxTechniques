@@ -8,6 +8,8 @@ struct Primitive
 {
     D3D12_VERTEX_BUFFER_VIEW Positions;
     D3D12_VERTEX_BUFFER_VIEW Normals;
+    D3D12_VERTEX_BUFFER_VIEW TexCoords;
+    D3D12_VERTEX_BUFFER_VIEW Tangents;
 
     D3D12_INDEX_BUFFER_VIEW Indices;
 

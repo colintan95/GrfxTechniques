@@ -177,6 +177,18 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
             int normalsAccessorIdx = primJson["attributes"]["NORMAL"];
             CreateVertexBufferView(normalsAccessorIdx, gltfJson, buffers, &prim.Normals);
 
+            if (primJson["attributes"].contains("TEXCOORD_0"))
+            {
+                int accessorIdx = primJson["attributes"]["TEXCOORD_0"];
+                CreateVertexBufferView(accessorIdx, gltfJson, buffers, &prim.TexCoords);
+            }
+
+            if (primJson["attributes"].contains("TANGENT"))
+            {
+                int accessorIdx = primJson["attributes"]["TANGENT"];
+                CreateVertexBufferView(accessorIdx, gltfJson, buffers, &prim.Tangents);
+            }
+
             int indicesAccessorIdx = primJson["indices"];
             CreateIndexBufferView(indicesAccessorIdx, gltfJson, buffers, &prim.Indices);
 

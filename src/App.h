@@ -129,4 +129,5 @@ private:
     Scene m_scene;
 
     Model m_model;
+    Model m_sponza;
 };

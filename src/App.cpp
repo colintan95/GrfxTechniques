@@ -47,6 +47,8 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     m_resourceManager->LoadGltfModel("assets/box/Box.gltf", &m_model);
 
+    m_resourceManager->LoadGltfModel("assets/sponza/Sponza.gltf", &m_sponza);
+
     m_scene.LightPos = glm::vec3(0.f, 1.f, -1.5f);
 
     IMGUI_CHECKVERSION();
