@@ -34,42 +34,59 @@ GpuResourceManager::GpuResourceManager(ID3D12Device* device)
     ++m_fenceValue;
 }
 
-struct BufferViewInfo
+namespace
 {
-    int BufferIdx;
+
+struct GltfAccessor
+{
+    int BufferView;
     int ByteOffset;
     int ComponentType;
     int Count;
-    std::string AccessorType;
+    std::string Type;
 };
 
-static void ParseBufferViewInfo(int accessorIdx, const json& gltfJson, BufferViewInfo* viewInfo)
+struct GltfBufferView
+{
+    int Buffer;
+    int ByteOffset;
+    int ByteLength;
+    int Target;
+};
+
+} // namespace
+
+static void ParseAccessorAndBufferView(int accessorIdx, const json& gltfJson,
+                                       GltfAccessor* accessor, GltfBufferView* bufferView)
 {
     const auto& accessorJson = gltfJson["accessors"][accessorIdx];
 
-    int bufferViewIdx = accessorJson["bufferView"];
+    accessor->BufferView = accessorJson["bufferView"];
+    accessor->ByteOffset = accessorJson["byteOffset"];
+    accessor->ComponentType = accessorJson["componentType"];
+    accessor->Count = accessorJson["count"];
+    accessor->Type = accessorJson["type"];
 
-    const auto& bufferViewJson = gltfJson["bufferViews"][bufferViewIdx];
+    const auto& bufferViewJson = gltfJson["bufferViews"][accessor->BufferView];
 
-    int bufferIdx = bufferViewJson["buffer"];
-
-    viewInfo->BufferIdx = bufferIdx;
-    viewInfo->ByteOffset = accessorJson["byteOffset"] + bufferViewJson["byteOffset"];
-    viewInfo->ComponentType = accessorJson["componentType"];
-    viewInfo->Count = accessorJson["count"];
-    viewInfo->AccessorType = accessorJson["type"];
+    bufferView->Buffer = bufferViewJson["buffer"];
+    bufferView->ByteOffset = bufferViewJson["byteOffset"];
+    bufferView->ByteLength = bufferViewJson["byteLength"];
+    bufferView->Target = bufferViewJson["target"];
 }
 
 static void CreateVertexBufferView(int accessorIdx, const json& gltfJson,
                                    const std::vector<com_ptr<ID3D12Resource>>& buffers,
-                                   D3D12_VERTEX_BUFFER_VIEW* view)
+                                   D3D12_VERTEX_BUFFER_VIEW* vertexBufferView)
 {
-    BufferViewInfo viewInfo;
-    ParseBufferViewInfo(accessorIdx, gltfJson, &viewInfo);
+    GltfAccessor accessor{};
+    GltfBufferView bufferView{};
+
+    ParseAccessorAndBufferView(accessorIdx, gltfJson, &accessor, &bufferView);
 
     int componentSize = 0;
 
-    switch (viewInfo.ComponentType)
+    switch (accessor.ComponentType)
     {
         case 5126:
             componentSize = sizeof(float);
@@ -80,7 +97,7 @@ static void CreateVertexBufferView(int accessorIdx, const json& gltfJson,
 
     int numComponents = 0;
 
-    if (viewInfo.AccessorType == "VEC3")
+    if (accessor.Type == "VEC3")
     {
         numComponents = 3;
     }
@@ -91,26 +108,28 @@ static void CreateVertexBufferView(int accessorIdx, const json& gltfJson,
 
     int stride = componentSize * numComponents;
 
-    view->BufferLocation = buffers[viewInfo.BufferIdx]->GetGPUVirtualAddress() +
-        viewInfo.ByteOffset;
-    view->SizeInBytes = stride * viewInfo.Count;
-    view->StrideInBytes = stride;
+    vertexBufferView->BufferLocation = buffers[bufferView.Buffer]->GetGPUVirtualAddress() +
+        accessor.ByteOffset + bufferView.ByteOffset;
+    vertexBufferView->SizeInBytes = stride * accessor.Count;
+    vertexBufferView->StrideInBytes = stride;
 }
 
 static void CreateIndexBufferView(int accessorIdx, const json& gltfJson,
                                   const std::vector<com_ptr<ID3D12Resource>>& buffers,
-                                  D3D12_INDEX_BUFFER_VIEW* view)
+                                  D3D12_INDEX_BUFFER_VIEW* indexBufferView)
 {
-    BufferViewInfo viewInfo;
-    ParseBufferViewInfo(accessorIdx, gltfJson, &viewInfo);
+    GltfAccessor accessor{};
+    GltfBufferView bufferView{};
 
-    if (viewInfo.ComponentType != 5123 || viewInfo.AccessorType != "SCALAR")
+    ParseAccessorAndBufferView(accessorIdx, gltfJson, &accessor, &bufferView);
+
+    if (accessor.ComponentType != 5123 || accessor.Type != "SCALAR")
         throw std::runtime_error("Unsupported index type.");
 
-    view->BufferLocation = buffers[viewInfo.BufferIdx]->GetGPUVirtualAddress() +
-        viewInfo.ByteOffset;
-    view->SizeInBytes = sizeof(uint16_t) * viewInfo.Count;
-    view->Format = DXGI_FORMAT_R16_UINT;
+    indexBufferView->BufferLocation = buffers[bufferView.Buffer]->GetGPUVirtualAddress() +
+        accessor.ByteOffset + bufferView.ByteOffset;
+    indexBufferView->SizeInBytes = sizeof(uint16_t) * accessor.Count;
+    indexBufferView->Format = DXGI_FORMAT_R16_UINT;
 }
 
 void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
@@ -154,7 +173,6 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
         model->Meshes.push_back(std::move(mesh));
     }
 }
-
 
 com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(std::span<const std::byte> data)
 {

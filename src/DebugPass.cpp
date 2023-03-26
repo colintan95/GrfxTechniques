@@ -72,6 +72,9 @@ void DebugPass::CreatePipelineState()
                                                         IID_PPV_ARGS(m_pipeline.put())));
 }
 
+namespace
+{
+
 struct CubeData
 {
     std::vector<float> Positions;
@@ -79,6 +82,8 @@ struct CubeData
 
     int VertexCount = 0;
 };
+
+} // namespace
 
 CubeData GetCubeData(float width)
 {
