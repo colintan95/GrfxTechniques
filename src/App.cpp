@@ -165,15 +165,18 @@ void App::CreateCommandList()
 
 void App::CreatePipelineState()
 {
-    CD3DX12_DESCRIPTOR_RANGE1 range{};
-    range.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+    CD3DX12_DESCRIPTOR_RANGE1 ranges[2];
+    ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-    CD3DX12_ROOT_PARAMETER1 rootParam{};
-    rootParam.InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
-                                       D3D12_SHADER_VISIBILITY_ALL);
+    CD3DX12_ROOT_PARAMETER1 rootParams[3];
+    rootParams[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+                                           D3D12_SHADER_VISIBILITY_ALL);
+    rootParams[1].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParams[2].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
-    rootSigDesc.Init_1_1(1, &rootParam, 0, nullptr,
+    rootSigDesc.Init_1_1(_countof(rootParams), rootParams, 0, nullptr,
                          D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     com_ptr<ID3DBlob> signatureBlob;
@@ -188,6 +191,8 @@ void App::CreatePipelineState()
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
          D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+         0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 2, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
          0}
     };
 
@@ -245,6 +250,38 @@ void App::CreateDescriptorHeaps()
             D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
         m_dsvHandle = m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+    }
+
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+        heapDesc.NumDescriptors = 1;
+        heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+        heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+        check_hresult(m_device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_samplerHeap.put())));
+        m_samplerHandleSize = m_device->GetDescriptorHandleIncrementSize(heapDesc.Type);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE samplerCpuHandle =
+            m_samplerHeap->GetCPUDescriptorHandleForHeapStart();
+
+        D3D12_SAMPLER_DESC samplerDesc{};
+        samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+        samplerDesc.MinLOD = 0.f;
+        samplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
+        samplerDesc.MipLODBias = 0.0f;
+        samplerDesc.MaxAnisotropy = 1;
+        samplerDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        samplerDesc.BorderColor[0] = 0;
+        samplerDesc.BorderColor[1] = 0;
+        samplerDesc.BorderColor[2] = 0;
+        samplerDesc.BorderColor[3] = 0;
+
+        m_device->CreateSampler(&samplerDesc, samplerCpuHandle);
+
+        m_samplerGpuHandle = m_samplerHeap->GetGPUDescriptorHandleForHeapStart();
     }
 
     {
@@ -335,7 +372,9 @@ void App::BeginFrame()
 
 void App::DrawModels()
 {
-    m_constantsPtr->WorldViewProjMatrix = m_projMat * m_camera->GetViewMat();
+    glm::mat4 worldMat = glm::scale(glm::mat4(1.f), glm::vec3(0.008f));
+
+    m_constantsPtr->WorldViewProjMatrix = m_projMat * m_camera->GetViewMat() * worldMat;
     m_constantsPtr->LightPos = glm::vec4(m_scene.LightPos, 1.f);
 
     check_hresult(m_frames[m_currentFrame].DrawCmdAlloc->Reset());
@@ -349,16 +388,30 @@ void App::DrawModels()
     m_cmdList->SetPipelineState(m_pipeline.get());
     m_cmdList->SetGraphicsRootSignature(m_rootSig.get());
 
-    m_cmdList->SetGraphicsRootConstantBufferView(0, m_constantBuffer->GetGPUVirtualAddress());
+    ID3D12DescriptorHeap* descriptorHeaps[] = {
+        m_samplerHeap.get(), m_resourceManager->GetTextureSrvHeap()
+    };
 
-    for (const auto& mesh : m_model.Meshes)
+    m_cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+    m_cmdList->SetGraphicsRootConstantBufferView(0, m_constantBuffer->GetGPUVirtualAddress());
+    m_cmdList->SetGraphicsRootDescriptorTable(2, m_samplerGpuHandle);
+
+    for (const auto& mesh : m_sponza.Meshes)
     {
         for (const auto& prim : mesh.Primitives)
         {
+            TextureId baseColorTextureId =
+                m_sponza.Materials[prim.MaterialIdx].BaseColorTextureId;
+
+            m_cmdList->SetGraphicsRootDescriptorTable(
+                1, m_resourceManager->GetTextureSrvHandle(baseColorTextureId));
+
             m_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
             m_cmdList->IASetVertexBuffers(0, 1, &prim.Positions);
             m_cmdList->IASetVertexBuffers(1, 1, &prim.Normals);
+            m_cmdList->IASetVertexBuffers(2, 1, &prim.TexCoords);
 
             m_cmdList->IASetIndexBuffer(&prim.Indices);
 
@@ -387,19 +440,19 @@ void App::RenderGui()
     //     ImGui::ShowDemoWindow(&showDemoWindow);
     // }
 
-    static bool showWindow = true;
+    // static bool showWindow = true;
 
-    static int mode = 0;
+    // static int mode = 0;
 
-    if (showWindow)
-    {
-        ImGui::Begin("Window", &showWindow);
+    // if (showWindow)
+    // {
+    //     ImGui::Begin("Window", &showWindow);
 
-        ImGui::RadioButton("Static", &mode, 0);
-        ImGui::RadioButton("FPS", &mode, 1);
+    //     ImGui::RadioButton("Static", &mode, 0);
+    //     ImGui::RadioButton("FPS", &mode, 1);
 
-        ImGui::End();
-    }
+    //     ImGui::End();
+    // }
 
     ImGui::Render();
 

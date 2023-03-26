@@ -104,6 +104,11 @@ private:
 
     D3D12_CPU_DESCRIPTOR_HANDLE m_dsvHandle;
 
+    winrt::com_ptr<ID3D12DescriptorHeap> m_samplerHeap;
+    uint32_t m_samplerHandleSize = 0;
+
+    D3D12_GPU_DESCRIPTOR_HANDLE m_samplerGpuHandle;
+
     winrt::com_ptr<ID3D12DescriptorHeap> m_guiSrvHeap;
 
     winrt::com_ptr<ID3D12Resource> m_depthTexture;

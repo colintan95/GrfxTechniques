@@ -23,6 +23,10 @@ public:
 
     TextureId LoadTextureToGpu(std::filesystem::path path);
 
+    ID3D12DescriptorHeap* GetTextureSrvHeap();
+
+    D3D12_GPU_DESCRIPTOR_HANDLE GetTextureSrvHandle(TextureId id);
+
 private:
     void ExecuteCommandListSync();
 
@@ -47,5 +51,5 @@ private:
     CD3DX12_CPU_DESCRIPTOR_HANDLE m_currentCpuDescriptorHandle;
     CD3DX12_GPU_DESCRIPTOR_HANDLE m_currentGpuDescriptorHandle;
 
-    std::unordered_map<TextureId, D3D12_GPU_DESCRIPTOR_HANDLE> m_textureGpuDescriptorHandles;
+    std::unordered_map<TextureId, D3D12_GPU_DESCRIPTOR_HANDLE> m_textureSrvHandles;
 };

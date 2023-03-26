@@ -267,9 +267,9 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
             int indicesAccessorIdx = primJson["indices"];
             CreateIndexBufferView(indicesAccessorIdx, gltfJson, buffers, &prim.Indices);
 
-            if (attrJson.contains("material"))
+            if (primJson.contains("material"))
             {
-                prim.MaterialIdx = attrJson["material"];
+                prim.MaterialIdx = primJson["material"];
             }
 
             prim.VertexCount = gltfJson["accessors"][indicesAccessorIdx]["count"];
@@ -461,11 +461,21 @@ TextureId GpuResourceManager::LoadTextureToGpu(fs::path path)
 
     m_device->CreateShaderResourceView(resource.get(), &srv_desc, srvCpuHandle);
 
-    m_textureGpuDescriptorHandles[textureId] = srvGpuHandle;
+    m_textureSrvHandles[textureId] = srvGpuHandle;
 
     m_textures.push_back(resource);
 
     return textureId;
+}
+
+ID3D12DescriptorHeap* GpuResourceManager::GetTextureSrvHeap()
+{
+    return m_descriptorHeap.get();
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE GpuResourceManager::GetTextureSrvHandle(TextureId id)
+{
+    return m_textureSrvHandles.at(id);
 }
 
 void GpuResourceManager::ExecuteCommandListSync()
