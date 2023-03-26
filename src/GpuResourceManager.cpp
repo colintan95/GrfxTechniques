@@ -35,6 +35,19 @@ GpuResourceManager::GpuResourceManager(ID3D12Device* device)
 
     check_hresult(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
                                    IID_PPV_ARGS(m_wicFactory.put())));
+
+    static constexpr int maxDescriptors = 128;
+
+    D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+    heapDesc.NumDescriptors = maxDescriptors;
+    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+
+    check_hresult(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(m_descriptorHeap.put())));
+    m_descriptorHandleSize = device->GetDescriptorHandleIncrementSize(heapDesc.Type);
+
+    m_currentCpuDescriptorHandle = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    m_currentGpuDescriptorHandle = m_descriptorHeap->GetGPUDescriptorHandleForHeapStart();
 }
 
 namespace
@@ -166,7 +179,7 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
             LoadBufferToGpu(path.parent_path() / bufferJson["uri"].get<std::string>()));
     }
 
-    std::vector<int> textureIds;
+    std::vector<TextureId> textureIds;
 
     for (const auto& imageJson : gltfJson["images"])
     {
@@ -325,7 +338,7 @@ com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(fs::path path)
     return LoadBufferToGpu(data);
 }
 
-int GpuResourceManager::LoadTextureToGpu(fs::path path)
+TextureId GpuResourceManager::LoadTextureToGpu(fs::path path)
 {
     com_ptr<IWICBitmapDecoder> decoder;
     check_hresult(m_wicFactory->CreateDecoderFromFilename(path.wstring().c_str(), nullptr,
@@ -432,6 +445,23 @@ int GpuResourceManager::LoadTextureToGpu(fs::path path)
     ExecuteCommandListSync();
 
     int textureId = static_cast<int>(m_textures.size());
+
+    D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle = m_currentCpuDescriptorHandle;
+    m_currentCpuDescriptorHandle.Offset(1, m_descriptorHandleSize);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = m_currentGpuDescriptorHandle;
+    m_currentGpuDescriptorHandle.Offset(1, m_descriptorHandleSize);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+    srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv_desc.Texture2D.MipLevels = 1;
+    srv_desc.Texture2D.MostDetailedMip = 0;
+
+    m_device->CreateShaderResourceView(resource.get(), &srv_desc, srvCpuHandle);
+
+    m_textureGpuDescriptorHandles[textureId] = srvGpuHandle;
 
     m_textures.push_back(resource);
 

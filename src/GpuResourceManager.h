@@ -3,6 +3,7 @@
 #include "Model.h"
 
 #include <d3d12.h>
+#include <d3dx12.h>
 #include <wincodec.h>
 #include <winrt/base.h>
 
@@ -20,7 +21,7 @@ public:
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::span<const std::byte> data);
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::filesystem::path path);
 
-    int LoadTextureToGpu(std::filesystem::path path);
+    TextureId LoadTextureToGpu(std::filesystem::path path);
 
 private:
     void ExecuteCommandListSync();
@@ -34,9 +35,17 @@ private:
     winrt::com_ptr<ID3D12Fence> m_fence;
     uint64_t m_fenceValue = 0;
 
-    winrt::com_ptr<IWICImagingFactory> m_wicFactory;
-
     std::vector<winrt::com_ptr<ID3D12Resource>> m_buffers;
 
     std::vector<winrt::com_ptr<ID3D12Resource>> m_textures;
+
+    winrt::com_ptr<IWICImagingFactory> m_wicFactory;
+
+    winrt::com_ptr<ID3D12DescriptorHeap> m_descriptorHeap;
+    uint32_t m_descriptorHandleSize = 0;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE m_currentCpuDescriptorHandle;
+    CD3DX12_GPU_DESCRIPTOR_HANDLE m_currentGpuDescriptorHandle;
+
+    std::unordered_map<TextureId, D3D12_GPU_DESCRIPTOR_HANDLE> m_textureGpuDescriptorHandles;
 };

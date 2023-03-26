@@ -24,15 +24,17 @@ struct Mesh
     std::vector<Primitive> Primitives;
 };
 
+using TextureId = int;
+
 struct Material
 {
     glm::vec4 BaseColorFactor;
     float MetallicFactor = 1.f;
     float RoughnessFactor = 1.f;
 
-    int BaseColorTextureId = -1;
-    int RoughnessTextureId = -1;
-    int NormalTextureId = -1;
+    TextureId BaseColorTextureId = -1;
+    TextureId RoughnessTextureId = -1;
+    TextureId NormalTextureId = -1;
 };
 
 struct Model
