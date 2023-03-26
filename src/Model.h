@@ -1,6 +1,7 @@
 #pragma once
 
 #include <d3d12.h>
+#include <glm/glm.hpp>
 
 #include <vector>
 
@@ -19,6 +20,15 @@ struct Primitive
 struct Mesh
 {
     std::vector<Primitive> Primitives;
+};
+
+struct Material
+{
+    glm::vec4 BaseColor;
+
+    int BaseColorTextureId;
+    int RoughnessTextureId;
+    int NormalTextureId;
 };
 
 struct Model

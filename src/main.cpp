@@ -67,6 +67,9 @@ int WINAPI WinMain(HINSTANCE hinstance, HINSTANCE, LPSTR, int cmdShow)
                              nullptr);
     ShowWindow(hwnd, cmdShow);
 
+    // Needed by WIC - used in GpuResourceManager to decode images.
+    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+
     auto inputManager = std::make_unique<InputManager>();
     g_inputManager = inputManager.get();
 
