@@ -88,6 +88,9 @@ static void CreateVertexBufferView(int accessorIdx, const json& gltfJson,
 
     switch (accessor.ComponentType)
     {
+        case 5123:
+            componentSize = sizeof(uint16_t);
+            break;
         case 5126:
             componentSize = sizeof(float);
             break;
@@ -97,9 +100,21 @@ static void CreateVertexBufferView(int accessorIdx, const json& gltfJson,
 
     int numComponents = 0;
 
-    if (accessor.Type == "VEC3")
+    if (accessor.Type == "SCALAR")
+    {
+        numComponents = 1;
+    }
+    else if (accessor.Type == "VEC2")
+    {
+        numComponents = 2;
+    }
+    else if (accessor.Type == "VEC3")
     {
         numComponents = 3;
+    }
+    else if (accessor.Type == "VEC4")
+    {
+        numComponents = 4;
     }
     else
     {
