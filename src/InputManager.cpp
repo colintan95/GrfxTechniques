@@ -22,6 +22,19 @@ InputHandle InputManager::AddKeyHoldListener(UINT keyCode, bool* value)
     return handle;
 }
 
+InputHandle InputManager::AddKeyPressListener(UINT keyCode, std::function<void()> callback)
+{
+    auto handle = CreateHandle();
+
+    KeyPressEntry entry{};
+    entry.Id = *handle.m_id;
+    entry.Callback = std::move(callback);
+
+    m_keyPressEntries[keyCode].push_back(entry);
+
+    return handle;
+}
+
 InputHandle InputManager::AddMouseHoldListener(MouseButton type, bool* value, int modifier)
 {
     auto handle = CreateHandle();
@@ -46,6 +59,10 @@ void InputManager::HandleKeyDown(UINT keyCode)
 
     TraverseEntries(m_keyHoldEntries[keyCode], [](KeyHoldEntry& entry) {
         *entry.Value = true;
+    });
+
+    TraverseEntries(m_keyPressEntries[keyCode], [](KeyPressEntry& entry) {
+        entry.Callback();
     });
 }
 

@@ -28,7 +28,8 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lp
         switch (msg)
         {
             case WM_KEYDOWN:
-                g_inputManager->HandleKeyDown(static_cast<UINT>(wparam));
+                if ((HIWORD(lparam) & KF_REPEAT) != KF_REPEAT)
+                    g_inputManager->HandleKeyDown(static_cast<UINT>(wparam));
                 break;
             case WM_KEYUP:
                 g_inputManager->HandleKeyUp(static_cast<UINT>(wparam));

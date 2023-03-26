@@ -30,6 +30,8 @@ private:
 
     bool m_middleMouseDown = false;
 
+    bool m_fpsMode = false;
+
     std::optional<int> m_prevMouseX;
     std::optional<int> m_prevMouseY;
 
@@ -39,4 +41,6 @@ private:
     InputHandle m_rightKeyDownHandle;
 
     InputHandle m_middleMouseDownHandle;
+
+    InputHandle m_fpsModeKeyPressHandle;
 };

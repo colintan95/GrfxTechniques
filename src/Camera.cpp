@@ -24,6 +24,9 @@ Camera::Camera(InputManager* inputManager)
     m_middleMouseDownHandle = m_inputManager->AddMouseHoldListener(MouseButton::Middle,
                                                                    &m_middleMouseDown,
                                                                    ModifierKey::Shift);
+
+    m_fpsModeKeyPressHandle = m_inputManager->AddKeyPressListener(
+        'Z', [this] { m_fpsMode = !m_fpsMode; });
 }
 
 void Camera::Tick(double elapsedSec)
@@ -59,7 +62,7 @@ void Camera::Tick(double elapsedSec)
         m_position += mouseXDiff * lookSpeed * rightVec;
         m_position -= mouseYDiff * lookSpeed * upVec;
     }
-    else
+    else if (m_fpsMode)
     {
         glm::mat4 rotateMat = glm::yawPitchRoll(m_yaw, m_pitch, 0.f);
 

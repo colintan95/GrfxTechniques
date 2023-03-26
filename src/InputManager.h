@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include <cassert>
+#include <functional>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -45,6 +46,8 @@ class InputManager
 public:
     InputHandle AddKeyHoldListener(UINT keyCode, bool* value);
 
+    InputHandle AddKeyPressListener(UINT keyCode, std::function<void()> callback);
+
     InputHandle AddMouseHoldListener(MouseButton button, bool* value,
                                      int modifier = ModifierKey::None);
 
@@ -86,6 +89,14 @@ private:
     };
 
     std::unordered_map<UINT, std::vector<KeyHoldEntry>> m_keyHoldEntries;
+
+    struct KeyPressEntry
+    {
+        InputId Id;
+        std::function<void()> Callback;
+    };
+
+    std::unordered_map<UINT, std::vector<KeyPressEntry>> m_keyPressEntries;
 
     struct MouseHoldEntry
     {
