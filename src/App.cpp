@@ -49,6 +49,8 @@ App::App(HWND hwnd, InputManager* inputManager)
 
     m_resourceManager->LoadGltfModel("assets/sponza/Sponza.gltf", &m_sponza);
 
+    CreateMaterialBuffers();
+
     m_scene.LightPos = glm::vec3(0.f, 1.f, -1.5f);
 
     IMGUI_CHECKVERSION();
@@ -169,11 +171,13 @@ void App::CreatePipelineState()
     ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
     ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 
-    CD3DX12_ROOT_PARAMETER1 rootParams[3];
+    CD3DX12_ROOT_PARAMETER1 rootParams[4];
     rootParams[0].InitAsConstantBufferView(0, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
                                            D3D12_SHADER_VISIBILITY_ALL);
     rootParams[1].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_PIXEL);
     rootParams[2].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParams[3].InitAsConstantBufferView(1, 0, D3D12_ROOT_DESCRIPTOR_FLAG_NONE,
+                                           D3D12_SHADER_VISIBILITY_ALL);
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSigDesc;
     rootSigDesc.Init_1_1(_countof(rootParams), rootParams, 0, nullptr,
@@ -318,7 +322,7 @@ void App::CreateDepthTexture()
 void App::CreateConstantBuffer()
 {
     size_t bufferSize = utils::Align(sizeof(Constants),
-                                     D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+                                    D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
 
     CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
     CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
@@ -333,6 +337,35 @@ void App::CreateConstantBuffer()
     m_projMat = glm::perspective(
         std::numbers::pi_v<float> / 4.f,
         static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight), 0.1f, 1000.f);
+}
+
+void App::CreateMaterialBuffers()
+{
+    m_materialsBufferStride = utils::Align(sizeof(Material),
+                                           D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+
+    size_t bufferSize = m_materialsBufferStride * m_sponza.Materials.size();
+
+    CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+
+    check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+                                                    &resourceDesc,
+                                                    D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                                    IID_PPV_ARGS(m_materialsBuffer.put())));
+
+    std::byte* bytePtr = nullptr;
+    check_hresult(m_materialsBuffer->Map(0, nullptr, reinterpret_cast<void**>(&bytePtr)));
+
+    for (const auto& material : m_sponza.Materials)
+    {
+        Material* materialPtr = reinterpret_cast<Material*>(bytePtr);
+        materialPtr->BaseColorFactor = material.BaseColorFactor;
+
+        bytePtr += m_materialsBufferStride;
+    }
+
+    m_materialsBuffer->Unmap(0, nullptr);
 }
 
 void App::Render()
@@ -406,6 +439,11 @@ void App::DrawModels()
 
             m_cmdList->SetGraphicsRootDescriptorTable(
                 1, m_resourceManager->GetTextureSrvHandle(baseColorTextureId));
+
+            D3D12_GPU_VIRTUAL_ADDRESS materialAddress = m_materialsBuffer->GetGPUVirtualAddress() +
+                prim.MaterialIdx * m_materialsBufferStride;
+
+            m_cmdList->SetGraphicsRootConstantBufferView(3, materialAddress);
 
             m_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 

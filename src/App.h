@@ -39,6 +39,8 @@ private:
 
     void CreateConstantBuffer();
 
+    void CreateMaterialBuffers();
+
     void BeginFrame();
 
     void DrawModels();
@@ -115,6 +117,9 @@ private:
 
     winrt::com_ptr<ID3D12Resource> m_constantBuffer;
 
+    winrt::com_ptr<ID3D12Resource> m_materialsBuffer;
+    size_t m_materialsBufferStride = 0;
+
     std::unique_ptr<DebugPass> m_debugPass;
 
     int m_currentFrame = 0;
@@ -130,6 +135,11 @@ private:
     };
 
     Constants* m_constantsPtr = nullptr;
+
+    struct Material
+    {
+        glm::vec4 BaseColorFactor;
+    };
 
     Scene m_scene;
 

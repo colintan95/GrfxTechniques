@@ -20,7 +20,14 @@ struct Constants
 
 ConstantBuffer<Constants> g_constants : register(b0);
 
-Texture2D g_baseColor : register(t0);
+struct Material
+{
+    float4 BaseColorFactor;
+};
+
+ConstantBuffer<Material> g_material : register(b1);
+
+Texture2D g_baseColorTexture : register(t0);
 
 SamplerState g_sampler : register(s0);
 
@@ -47,5 +54,8 @@ float4 PSMain(PSInput input) : SV_TARGET
 
     // return float4(color, 1.f);
 
-    return float4(g_baseColor.Sample(g_sampler, input.TexCoord).rgb, 1.f);
+    float4 baseColor = float4(g_baseColorTexture.Sample(g_sampler, input.TexCoord).rgb, 1.f) *
+        g_material.BaseColorFactor;
+
+    return baseColor;
 }
