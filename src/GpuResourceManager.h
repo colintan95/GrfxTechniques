@@ -18,6 +18,9 @@ public:
 
     void LoadGltfModel(std::filesystem::path path, Model* model);
 
+    winrt::com_ptr<ID3D12Resource> CreateConstantBuffer(size_t elementSize, size_t numElements,
+                                                        size_t* outStride = nullptr);
+
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::span<const std::byte> data);
     winrt::com_ptr<ID3D12Resource> LoadBufferToGpu(std::filesystem::path path);
 

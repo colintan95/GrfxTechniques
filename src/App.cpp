@@ -321,16 +321,7 @@ void App::CreateDepthTexture()
 
 void App::CreateConstantBuffer()
 {
-    size_t bufferSize = utils::Align(sizeof(Constants),
-                                    D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-
-    CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
-
-    check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                                                    &resourceDesc,
-                                                    D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                                    IID_PPV_ARGS(m_constantBuffer.put())));
+    m_constantBuffer = m_resourceManager->CreateConstantBuffer(sizeof(Constants), 1);
 
     check_hresult(m_constantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_constantsPtr)));
 
@@ -341,18 +332,9 @@ void App::CreateConstantBuffer()
 
 void App::CreateMaterialBuffers()
 {
-    m_materialsBufferStride = utils::Align(sizeof(Material),
-                                           D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
-
-    size_t bufferSize = m_materialsBufferStride * m_sponza.Materials.size();
-
-    CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
-
-    check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
-                                                    &resourceDesc,
-                                                    D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                                    IID_PPV_ARGS(m_materialsBuffer.put())));
+    m_materialsBuffer = m_resourceManager->CreateConstantBuffer(sizeof(Material),
+                                                                m_sponza.Materials.size(),
+                                                                &m_materialsBufferStride);
 
     std::byte* bytePtr = nullptr;
     check_hresult(m_materialsBuffer->Map(0, nullptr, reinterpret_cast<void**>(&bytePtr)));

@@ -1,5 +1,7 @@
 #include "GpuResourceManager.h"
 
+#include "Utils.h"
+
 #include <d3dx12.h>
 #include <nlohmann/json.hpp>
 
@@ -279,6 +281,29 @@ void GpuResourceManager::LoadGltfModel(fs::path path, Model* model)
 
         model->Meshes.push_back(std::move(mesh));
     }
+}
+
+com_ptr<ID3D12Resource> GpuResourceManager::CreateConstantBuffer(size_t elementSize,
+                                                                 size_t numElements,
+                                                                 size_t* outStride)
+{
+    size_t stride = utils::Align(elementSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+
+    size_t bufferSize = stride * numElements;
+
+    CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+
+    com_ptr<ID3D12Resource> resource;
+    check_hresult(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
+                                                    &resourceDesc,
+                                                    D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                                    IID_PPV_ARGS(resource.put())));
+
+    if (outStride)
+        *outStride = stride;
+
+    return resource;
 }
 
 com_ptr<ID3D12Resource> GpuResourceManager::LoadBufferToGpu(std::span<const std::byte> data)
